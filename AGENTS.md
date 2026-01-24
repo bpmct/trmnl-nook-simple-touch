@@ -39,6 +39,12 @@ Files that prove this:
   - Prefer deterministic layouts (avoid “phone/tablet responsive” complexity)
   - Use `dp`/`sp` and test for readability on e-ink
 
+## E‑ink UI notes (high contrast)
+
+- Prefer **black text on white background** for critical/placeholder content; avoid colored text (it often ends up low-contrast on e‑ink).
+- Avoid **semi-transparent overlays** (they tend to render as muddy greys).
+- Avoid **double outlines** (e.g., both a container border and a button border) since they can look like unintended “extra lines” when tapping/refreshing.
+
 ## Period-correct references (start here)
 
 - **nookDevs wiki (community archive)**: `https://nookdevs.com/` (also `http://nookdevs.com/Main_Page`)
@@ -51,7 +57,7 @@ Files that prove this:
 
 Modern `developer.android.com` pages often assume much newer Android versions. For API-7-era work:
 
-- Prefer **the offline docs shipped with the legacy Android SDK** (historically under the SDK’s `docs/` directory).
+- Use the **local Android 2.1 (API 7) offline docs in this workspace** as the primary/required reference: start at `android-2.1-api-docs/index.html`.
 - When in doubt, prefer *older* official docs and examples (ADT/Ant era) over modern Android Studio/Gradle guidance.
 
 ## Interpreting “Android 2.1 / API 7 for everything”

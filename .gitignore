@@ -1,0 +1,20 @@
+# Eclipse ADT / Ant-era Android project ignores
+
+# Build outputs (generated)
+bin/
+gen/
+obj/
+out/
+
+# Packaged / compiled artifacts
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Local SDK path (do not commit)
+local.properties
+
+# Logs / OS junk
+*.log
+.DS_Store
