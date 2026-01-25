@@ -25,7 +25,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 public class FullscreenActivity extends Activity {
     private static final String TAG = "TRMNLAPI";
-    private static final long REFRESH_MS = 2 * 60 * 1000;
+    private static final long REFRESH_MS = 15 * 60 * 1000;
     private TextView contentView;
     private TextView logView;
     private ImageView imageView;
