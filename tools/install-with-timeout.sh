@@ -38,6 +38,6 @@ echo "Step 2: Installing from device storage..."
 "${ADB_BIN}" -s "${DEVICE}" shell pm install -r "${TMP_PATH}"
 
 echo "Step 3: Cleaning up..."
-"${ADB_BIN}" -s "${DEVICE}" shell rm -f "${TMP_PATH}"
+"${ADB_BIN}" -s "${DEVICE}" shell rm "${TMP_PATH}" >/dev/null 2>&1 || true
 
 echo "Installation complete!"

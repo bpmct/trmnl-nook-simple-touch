@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="trmnl-nook-simple-touch-custom">
+    <!--
+      Disable PNG crunching to avoid aapt choking on bin/res/crunch
+      when using the legacy Ant/ADT toolchain.
+    -->
+    <target name="-crunch" />
+</project>

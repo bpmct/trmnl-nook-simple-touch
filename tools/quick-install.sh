@@ -50,14 +50,14 @@ echo ""
 echo "Step 2/3: Installing from device storage..."
 "${ADB_BIN}" -s "${DEVICE}" shell pm install -r "${TMP_PATH}" || {
     echo "error: install failed" >&2
-    "${ADB_BIN}" -s "${DEVICE}" shell rm -f "${TMP_PATH}" || true
+    "${ADB_BIN}" -s "${DEVICE}" shell rm "${TMP_PATH}" >/dev/null 2>&1 || true
     exit 1
 }
 echo "Install complete ✓"
 echo ""
 
 echo "Step 3/3: Cleaning up..."
-"${ADB_BIN}" -s "${DEVICE}" shell rm -f "${TMP_PATH}"
+"${ADB_BIN}" -s "${DEVICE}" shell rm "${TMP_PATH}" >/dev/null 2>&1 || true
 echo "Cleanup complete ✓"
 echo ""
 
