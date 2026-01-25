@@ -80,6 +80,7 @@ CIDR=""
 DO_SCAN="0"
 LOGCAT_FILTER="${LOGCAT_FILTER:-${DEFAULT_LOGCAT_FILTER}}"
 BUILD_COMPILER="${BUILD_COMPILER:-modern}"
+CLEAN_BUILD="0"
 
 port_open() {
   local ip="$1"
@@ -261,7 +262,11 @@ ant_debug() {
   if [[ -d "${PROJECT_DIR}/bin/res/crunch" ]]; then
     rm -rf "${PROJECT_DIR}/bin/res/crunch"
   fi
-  (cd "${PROJECT_DIR}" && "${ANT_BIN}" -Dbuild.compiler="${BUILD_COMPILER}" clean debug)
+  local ant_targets="debug"
+  if [[ "${CLEAN_BUILD}" == "1" ]]; then
+    ant_targets="clean debug"
+  fi
+  (cd "${PROJECT_DIR}" && "${ANT_BIN}" -Dbuild.compiler="${BUILD_COMPILER}" ${ant_targets})
 }
 
 install_apk() {
@@ -300,6 +305,7 @@ Usage:
 Global options:
   --adb /path/to/adb         Use a specific adb binary (or set ADB env var)
   --ant /path/to/ant         Use a specific ant binary (or set ANT env var)
+  --clean                    Clean before building (slower)
   (env) BUILD_COMPILER=modern Override Ant compiler adapter (default: modern)
   (env) ANT=/path/to/ant     Use a specific ant binary (or ensure `ant` is in PATH)
   --adb-server host:5037     Use a remote ADB server (sets ADB_SERVER_SOCKET)
@@ -325,7 +331,8 @@ Examples:
   tools/nook-adb.sh connect               # defaults to 192.168.1.236:5555
   tools/nook-adb.sh connect --ip 192.168.1.50
   tools/nook-adb.sh install --apk bin/trmnl-nook-simple-touch-debug.apk
-  tools/nook-adb.sh build-install-run     # runs android+ant, installs, launches
+  tools/nook-adb.sh build-install-run     # runs ant debug, installs, launches
+  tools/nook-adb.sh --clean build-install-run
   tools/nook-adb.sh install-run-logcat    # install + run + logcat
   tools/nook-adb.sh build-install-run-logcat --ant /path/to/ant
 EOF
@@ -344,6 +351,10 @@ parse_global_opts() {
         shift
         [[ $# -gt 0 ]] || die "--ant requires a value"
         ANT_BIN="$1"
+        shift
+        ;;
+      --clean)
+        CLEAN_BUILD="1"
         shift
         ;;
       --adb-server)
