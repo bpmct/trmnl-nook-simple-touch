@@ -432,6 +432,7 @@ public class FullscreenActivity extends Activity {
         }
         flashOverlay.post(new Runnable() {
             public void run() {
+                flashOverlay.setBackgroundColor(0xFF000000);
                 flashOverlay.setVisibility(View.VISIBLE);
                 if (rootLayout != null) {
                     rootLayout.bringChildToFront(flashOverlay);
@@ -443,9 +444,18 @@ public class FullscreenActivity extends Activity {
         refreshHandler.postDelayed(new Runnable() {
             public void run() {
                 if (flashOverlay != null) {
-                    flashOverlay.setVisibility(View.GONE);
+                    flashOverlay.setBackgroundColor(0xFFFFFFFF);
+                    flashOverlay.setVisibility(View.VISIBLE);
                 }
-                refreshContentAfterSidebar();
+                forceFullRefresh();
+                refreshHandler.postDelayed(new Runnable() {
+                    public void run() {
+                        if (flashOverlay != null) {
+                            flashOverlay.setVisibility(View.GONE);
+                        }
+                        refreshContentAfterSidebar();
+                    }
+                }, 80);
             }
         }, 80);
     }
