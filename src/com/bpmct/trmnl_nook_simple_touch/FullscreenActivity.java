@@ -42,8 +42,10 @@ public class FullscreenActivity extends Activity {
     private ImageView imageView;
     private ScrollView contentScroll;
     private RotateLayout appRotateLayout;
+    private FrameLayout rootLayout;
     private LinearLayout sidebarLayout;
     private View sidebarScrim;
+    private View flashOverlay;
     private TextView batteryView;
     private RotateLayout imageRotateLayout;
     private boolean sidebarVisible = false;
@@ -68,6 +70,7 @@ public class FullscreenActivity extends Activity {
         root.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
+        rootLayout = root;
 
         // Simple layout: log panel + image or scrollable response panel
         LinearLayout contentLayout = new LinearLayout(this);
@@ -136,6 +139,14 @@ public class FullscreenActivity extends Activity {
             }
         });
         root.addView(sidebarScrim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT,
+                ViewGroup.LayoutParams.FILL_PARENT));
+
+        // Flash overlay for e-ink ghosting reduction.
+        flashOverlay = new View(this);
+        flashOverlay.setBackgroundColor(0xFF000000);
+        flashOverlay.setVisibility(View.GONE);
+        root.addView(flashOverlay, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
 
@@ -363,7 +374,7 @@ public class FullscreenActivity extends Activity {
         sidebarVisible = false;
         if (sidebarLayout != null) sidebarLayout.setVisibility(View.GONE);
         if (sidebarScrim != null) sidebarScrim.setVisibility(View.GONE);
-        forceFullRefresh();
+        flashBlack();
     }
 
     private void updateSidebarBattery() {
@@ -381,6 +392,9 @@ public class FullscreenActivity extends Activity {
             imageRotateLayout.requestLayout();
             imageRotateLayout.invalidate();
         }
+        if (flashOverlay != null) {
+            flashOverlay.invalidate();
+        }
         View root = getWindow().getDecorView();
         if (root == null) return;
         root.invalidate();
@@ -391,6 +405,49 @@ public class FullscreenActivity extends Activity {
                 if (r != null) r.invalidate();
             }
         }, 40);
+    }
+
+    private void refreshContentAfterSidebar() {
+        if (imageView != null && imageView.getVisibility() == View.VISIBLE) {
+            imageView.invalidate();
+        }
+        if (contentScroll != null && contentScroll.getVisibility() == View.VISIBLE) {
+            contentScroll.invalidate();
+        }
+        if (logView != null && logView.getVisibility() == View.VISIBLE) {
+            logView.invalidate();
+        }
+        forceFullRefresh();
+        refreshHandler.postDelayed(new Runnable() {
+            public void run() {
+                forceFullRefresh();
+            }
+        }, 120);
+    }
+
+    private void flashBlack() {
+        if (flashOverlay == null) {
+            forceFullRefresh();
+            return;
+        }
+        flashOverlay.post(new Runnable() {
+            public void run() {
+                flashOverlay.setVisibility(View.VISIBLE);
+                if (rootLayout != null) {
+                    rootLayout.bringChildToFront(flashOverlay);
+                    rootLayout.requestLayout();
+                }
+                forceFullRefresh();
+            }
+        });
+        refreshHandler.postDelayed(new Runnable() {
+            public void run() {
+                if (flashOverlay != null) {
+                    flashOverlay.setVisibility(View.GONE);
+                }
+                refreshContentAfterSidebar();
+            }
+        }, 80);
     }
 
     private void logD(final String msg) {
@@ -429,7 +486,6 @@ public class FullscreenActivity extends Activity {
         private final String httpsUrl;
         private final String apiId;
         private final String apiToken;
-
         private ApiFetchTask(FullscreenActivity activity, String httpsUrl, String apiId, String apiToken) {
             this.activityRef = new WeakReference(activity);
             this.httpsUrl = httpsUrl;
@@ -476,7 +532,9 @@ public class FullscreenActivity extends Activity {
             }
             
             // Fallback to system HttpURLConnection (TLS 1.0 only)
-            Object result = fetchUrl(httpsUrl, true, apiId, apiToken, batteryVoltage, rssi);
+            Object result = fetchUrl(httpsUrl, true, apiId, apiToken,
+                    batteryVoltage,
+                    rssi);
             if (result != null && !result.toString().startsWith("Error:")) {
                 ApiResult parsed = null;
                 if (a != null) {
@@ -491,7 +549,8 @@ public class FullscreenActivity extends Activity {
             return result;
         }
         
-        private Object fetchUrl(String url, boolean isHttps, String apiId, String apiToken, float batteryVoltage, int rssi) {
+        private Object fetchUrl(String url, boolean isHttps, String apiId, String apiToken,
+                                float batteryVoltage, int rssi) {
             HttpURLConnection conn = null;
             try {
                 FullscreenActivity a0 = (FullscreenActivity) activityRef.get();
@@ -677,7 +736,7 @@ public class FullscreenActivity extends Activity {
             JSONObject obj = new JSONObject(jsonText);
             int status = obj.optInt("status", -1);
             // API returns 0 for display
-            if (status != 0) {
+            if (status != 0 && status != 200) {
                 return new ApiResult(jsonText);
             }
             logD("api status: " + status);
@@ -756,6 +815,7 @@ public class FullscreenActivity extends Activity {
         }
         return headers;
     }
+
 
     private static Hashtable buildImageHeaders() {
         Hashtable headers = new Hashtable();
