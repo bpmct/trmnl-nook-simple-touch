@@ -35,6 +35,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 public class FullscreenActivity extends Activity {
+    public static final String EXTRA_CLEAR_IMAGE = "clear_image";
     private static final String TAG = "TRMNLAPI";
     private static final long DEFAULT_REFRESH_MS = 15 * 60 * 1000;
     private TextView contentView;
@@ -248,11 +249,28 @@ public class FullscreenActivity extends Activity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        applyIntentState(getIntent());
         if (ensureCredentials()) {
             if (!fetchInProgress) {
                 startFetch();
             }
             scheduleRefresh();
+        }
+    }
+
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        applyIntentState(intent);
+    }
+
+    private void applyIntentState(Intent intent) {
+        if (intent == null) return;
+        if (intent.getBooleanExtra(EXTRA_CLEAR_IMAGE, false)) {
+            if (imageView != null) imageView.setVisibility(View.GONE);
+            if (contentScroll != null) contentScroll.setVisibility(View.VISIBLE);
+            if (logView != null) logView.setVisibility(View.VISIBLE);
+            intent.removeExtra(EXTRA_CLEAR_IMAGE);
         }
     }
 
