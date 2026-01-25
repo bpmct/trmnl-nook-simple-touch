@@ -25,7 +25,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 public class FullscreenActivity extends Activity {
     private static final String TAG = "TRMNLAPI";
-    private static final long REFRESH_MS = 15 * 60 * 1000;
+    private static final long DEFAULT_REFRESH_MS = 15 * 60 * 1000;
     private TextView contentView;
     private TextView logView;
     private ImageView imageView;
@@ -33,6 +33,7 @@ public class FullscreenActivity extends Activity {
     private final Handler refreshHandler = new Handler();
     private Runnable refreshRunnable;
     private volatile boolean fetchInProgress = false;
+    private volatile long refreshMs = DEFAULT_REFRESH_MS;
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_CHARS = 6000;
     @Override
@@ -124,12 +125,30 @@ public class FullscreenActivity extends Activity {
             refreshRunnable = new Runnable() {
                 public void run() {
                     startFetch(true);
-                    refreshHandler.postDelayed(this, REFRESH_MS);
+                    refreshHandler.postDelayed(this, refreshMs);
                 }
             };
         }
         refreshHandler.removeCallbacks(refreshRunnable);
-        refreshHandler.postDelayed(refreshRunnable, REFRESH_MS);
+        logD("next advance in " + (refreshMs / 1000L) + "s");
+        refreshHandler.postDelayed(refreshRunnable, refreshMs);
+    }
+
+    private void updateRefreshRateSeconds(final int seconds) {
+        if (seconds <= 0) {
+            return;
+        }
+        long newMs = seconds * 1000L;
+        if (newMs == refreshMs) {
+            return;
+        }
+        refreshMs = newMs;
+        logD("refresh rate set to " + seconds + "s");
+        refreshHandler.post(new Runnable() {
+            public void run() {
+                scheduleRefresh();
+            }
+        });
     }
 
     private void appendLogLine(String line) {
@@ -405,6 +424,11 @@ public class FullscreenActivity extends Activity {
                 return new ApiResult(jsonText);
             }
             logD("api status: " + status);
+
+            int refreshRateSeconds = obj.optInt("refresh_rate", -1);
+            if (refreshRateSeconds > 0) {
+                updateRefreshRateSeconds(refreshRateSeconds);
+            }
 
             String imageUrl = obj.optString("image_url", null);
             if (imageUrl == null || imageUrl.length() == 0) {
