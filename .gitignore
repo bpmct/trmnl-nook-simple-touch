@@ -19,8 +19,6 @@ libs/spongycastle-*.jar
 local.properties
 
 # API credentials (do not commit)
-api_config.properties
-src/com/bpmct/trmnl_nook_simple_touch/ApiConfig.java
 
 # Logs / OS junk
 *.log

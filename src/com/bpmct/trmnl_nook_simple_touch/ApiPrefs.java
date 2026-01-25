@@ -8,6 +8,7 @@ public class ApiPrefs {
     private static final String KEY_API_ID = "api_id";
     private static final String KEY_API_TOKEN = "api_token";
     private static final String KEY_API_BASE_URL = "api_base_url";
+    private static final String DEFAULT_API_BASE_URL = "https://usetrmnl.com/api";
 
     public static boolean hasCredentials(Context context) {
         return getApiId(context) != null && getApiToken(context) != null;
@@ -39,9 +40,9 @@ public class ApiPrefs {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String value = prefs.getString(KEY_API_BASE_URL, null);
         if (value == null || value.trim().length() == 0) {
-            return ApiConfig.API_BASE_URL;
+            return getDefaultApiBaseUrl(context);
         }
-        String normalized = normalizeBaseUrl(value);
+        String normalized = normalizeBaseUrl(value, getDefaultApiBaseUrl(context));
         if (!normalized.equals(value.trim())) {
             prefs.edit().putString(KEY_API_BASE_URL, normalized).commit();
         }
@@ -50,16 +51,27 @@ public class ApiPrefs {
 
     public static void saveApiBaseUrl(Context context, String baseUrl) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String value = normalizeBaseUrl(baseUrl);
+        String value = normalizeBaseUrl(baseUrl, getDefaultApiBaseUrl(context));
         prefs.edit()
                 .putString(KEY_API_BASE_URL, value)
                 .commit();
     }
 
-    private static String normalizeBaseUrl(String baseUrl) {
+    public static String getDefaultApiBaseUrl(Context context) {
+        if (context == null) {
+            return DEFAULT_API_BASE_URL;
+        }
+        try {
+            return context.getString(R.string.api_base_url_default);
+        } catch (Throwable t) {
+            return DEFAULT_API_BASE_URL;
+        }
+    }
+
+    private static String normalizeBaseUrl(String baseUrl, String defaultBaseUrl) {
         String value = baseUrl != null ? baseUrl.trim() : "";
         if (value.length() == 0) {
-            return ApiConfig.API_BASE_URL;
+            return defaultBaseUrl;
         }
         while (value.endsWith("/")) {
             value = value.substring(0, value.length() - 1);

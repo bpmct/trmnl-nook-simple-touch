@@ -52,7 +52,7 @@ public class CredentialsActivity extends Activity {
         baseUrlInput.setTextColor(0xFF000000);
         baseUrlInput.setTextSize(18);
         baseUrlInput.setPadding(12, 12, 12, 12);
-        baseUrlInput.setHint(ApiConfig.API_BASE_URL);
+        baseUrlInput.setHint(ApiPrefs.getDefaultApiBaseUrl(this));
         baseUrlInput.setText(ApiPrefs.getApiBaseUrl(this));
         LinearLayout.LayoutParams baseUrlParams = new LinearLayout.LayoutParams(
                 420,
@@ -169,8 +169,8 @@ public class CredentialsActivity extends Activity {
             public void onClick(View v) {
                 idInput.setText("");
                 tokenInput.setText("");
-                baseUrlInput.setText(ApiConfig.API_BASE_URL);
-                ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, ApiConfig.API_BASE_URL);
+                baseUrlInput.setText(ApiPrefs.getDefaultApiBaseUrl(CredentialsActivity.this));
+                ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, ApiPrefs.getDefaultApiBaseUrl(CredentialsActivity.this));
                 statusView.setText("");
             }
         });

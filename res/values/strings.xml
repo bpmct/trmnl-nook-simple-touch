@@ -3,5 +3,6 @@
 
     <string name="app_name">trmnl-nook-simple-touch</string>
     <string name="dummy_content">NOOK\nTEST\nPLACEHOLDER</string>
+    <string name="api_base_url_default">https://usetrmnl.com/api</string>
 
 </resources>

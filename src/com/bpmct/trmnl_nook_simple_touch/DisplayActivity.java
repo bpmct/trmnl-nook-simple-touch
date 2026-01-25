@@ -38,6 +38,7 @@ public class DisplayActivity extends Activity {
     public static final String EXTRA_CLEAR_IMAGE = "clear_image";
     private static final String TAG = "TRMNLAPI";
     private static final long DEFAULT_REFRESH_MS = 15 * 60 * 1000;
+    private static final String API_DISPLAY_PATH = "/display";
     private TextView contentView;
     private TextView logView;
     private ImageView imageView;
@@ -336,7 +337,7 @@ public class DisplayActivity extends Activity {
             return;
         }
         fetchInProgress = true;
-        String httpsUrl = ApiPrefs.getApiBaseUrl(this) + ApiConfig.API_DISPLAY_PATH;
+        String httpsUrl = ApiPrefs.getApiBaseUrl(this) + API_DISPLAY_PATH;
         logD("start: " + httpsUrl);
         ApiFetchTask.start(this, httpsUrl, ApiPrefs.getApiId(this), ApiPrefs.getApiToken(this));
     }
