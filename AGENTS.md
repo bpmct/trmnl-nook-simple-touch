@@ -82,6 +82,50 @@ This repo is meant to be worked on with **Eclipse ADT** and/or the old Android *
   - Android SDK Platform **7** (API 7 / Android 2.1 — to verify APIs & docs)
   - Platform-tools (adb)
 
+## TLS/SSL limitations on Android 2.1 (API 7)
+
+**Critical constraint**: Android 2.1's OpenSSL library only supports up to **TLS 1.0** (and SSLv3). It **cannot** negotiate TLS 1.2 or TLS 1.3, which most modern APIs require.
+
+### What this means:
+- **HTTPS to modern APIs will fail** with SSL handshake errors (e.g., `SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure`)
+- This is a **system library limitation**, not something fixable in app code
+- TLS 1.2 support was added in Android 4.1 (API 16)
+
+### Workarounds:
+1. **HTTP fallback**: If the API supports HTTP, automatically fall back when HTTPS fails
+2. **Proxy**: Use a local proxy that accepts TLS 1.2+ and speaks TLS 1.0 to the NOOK
+3. **Different API**: Use APIs that still support TLS 1.0 (rare)
+
+### Implementation notes:
+- Custom `TrustManager` can bypass certificate validation, but **cannot** upgrade the TLS protocol version
+- Always implement HTTP fallback for API calls on API 7
+- Log SSL errors comprehensively for troubleshooting (see `TRMNLAPI` tag in logcat)
+
+## Network API patterns for API 7
+
+### HTTP/HTTPS requests:
+- Use `HttpURLConnection` (available in API 7)
+- Always call `connect()` explicitly before `getResponseCode()` on API 7
+- Set reasonable timeouts (15-20 seconds)
+- Handle `-1` response codes (connection failures)
+- Implement retry logic for transient failures
+
+### Error handling:
+- Log all errors to logcat with full stack traces
+- Display user-friendly error messages on screen
+- Check for SSL errors specifically and trigger HTTP fallback
+
+### Example pattern (see `FullscreenActivity.java`):
+```java
+// Try HTTPS first
+Object result = fetchUrl(httpsUrl, true);
+
+// If HTTPS fails with SSL error, try HTTP fallback
+if (result != null && result.toString().contains("SSL") && httpUrl != null) {
+    result = fetchUrl(httpUrl, false);
+}
+```
+
 ## If you want to provide offline docs/SDK artifacts
 
 If you download/zip any old SDK bundles or docs, add a short note here with:
