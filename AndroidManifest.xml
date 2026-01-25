@@ -32,6 +32,11 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="Settings"
             android:theme="@style/FullscreenTheme" />
+        <activity
+            android:name=".CredentialsActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="Credentials"
+            android:theme="@style/FullscreenTheme" />
     </application>
 
 </manifest>

@@ -43,12 +43,12 @@ public class FullscreenActivity extends Activity {
     private ScrollView contentScroll;
     private RotateLayout appRotateLayout;
     private FrameLayout rootLayout;
-    private LinearLayout sidebarLayout;
-    private View sidebarScrim;
+    private LinearLayout menuLayout;
+    private View menuScrim;
     private View flashOverlay;
     private TextView batteryView;
     private RotateLayout imageRotateLayout;
-    private boolean sidebarVisible = false;
+    private boolean menuVisible = false;
     private final Handler refreshHandler = new Handler();
     private Runnable refreshRunnable;
     private volatile boolean fetchInProgress = false;
@@ -118,10 +118,10 @@ public class FullscreenActivity extends Activity {
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
 
-        // Tap anywhere on content to toggle the sidebar.
+        // Tap anywhere on content to toggle the menu.
         View.OnClickListener toggleListener = new View.OnClickListener() {
             public void onClick(View v) {
-                toggleSidebar();
+                toggleMenu();
             }
         };
         contentLayout.setOnClickListener(toggleListener);
@@ -130,15 +130,15 @@ public class FullscreenActivity extends Activity {
         contentView.setOnClickListener(toggleListener);
         imageView.setOnClickListener(toggleListener);
 
-        // Scrim for closing sidebar when tapping outside.
-        sidebarScrim = new View(this);
-        sidebarScrim.setVisibility(View.GONE);
-        sidebarScrim.setOnClickListener(new View.OnClickListener() {
+        // Scrim for closing menu when tapping outside.
+        menuScrim = new View(this);
+        menuScrim.setVisibility(View.GONE);
+        menuScrim.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                hideSidebar();
+                hideMenu();
             }
         });
-        root.addView(sidebarScrim, new FrameLayout.LayoutParams(
+        root.addView(menuScrim, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
 
@@ -150,21 +150,21 @@ public class FullscreenActivity extends Activity {
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
 
-        // Sidebar content (normal orientation; root is rotated).
-        sidebarLayout = new LinearLayout(this);
-        sidebarLayout.setOrientation(LinearLayout.HORIZONTAL);
-        sidebarLayout.setVisibility(View.GONE);
-        sidebarLayout.setClickable(true);
-        sidebarLayout.setFocusable(true);
+        // Menu content (normal orientation; root is rotated).
+        menuLayout = new LinearLayout(this);
+        menuLayout.setOrientation(LinearLayout.HORIZONTAL);
+        menuLayout.setVisibility(View.GONE);
+        menuLayout.setClickable(true);
+        menuLayout.setFocusable(true);
 
-        sidebarLayout.setPadding(18, 12, 18, 12);
-        sidebarLayout.setBackgroundColor(0xFFEFEFEF);
+        menuLayout.setPadding(18, 12, 18, 12);
+        menuLayout.setBackgroundColor(0xFFEFEFEF);
 
         batteryView = new TextView(this);
         batteryView.setTextColor(0xFF000000);
         batteryView.setTextSize(14);
         batteryView.setText("Battery: --%");
-        sidebarLayout.addView(batteryView, new LinearLayout.LayoutParams(
+        menuLayout.addView(batteryView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -174,14 +174,14 @@ public class FullscreenActivity extends Activity {
         nextButton.setClickable(true);
         nextButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                logD("sidebar: next tapped");
-                hideSidebar();
+                logD("menu: next tapped");
+                hideMenu();
                 startFetch();
             }
         });
         nextButton.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View v, android.view.MotionEvent event) {
-                logD("sidebar: next touch action=" + event.getAction());
+                logD("menu: next touch action=" + event.getAction());
                 return false;
             }
         });
@@ -189,7 +189,7 @@ public class FullscreenActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         nextParams.leftMargin = 18;
-        sidebarLayout.addView(nextButton, nextParams);
+        menuLayout.addView(nextButton, nextParams);
 
         Button settingsButton = new Button(this);
         settingsButton.setText("Settings");
@@ -197,8 +197,8 @@ public class FullscreenActivity extends Activity {
         settingsButton.setClickable(true);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                logD("sidebar: settings tapped");
-                hideSidebar();
+                logD("menu: settings tapped");
+                hideMenu();
                 try {
                     startActivity(new Intent(FullscreenActivity.this, SettingsActivity.class));
                 } catch (Throwable t) {
@@ -208,7 +208,7 @@ public class FullscreenActivity extends Activity {
         });
         settingsButton.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View v, android.view.MotionEvent event) {
-                logD("sidebar: settings touch action=" + event.getAction());
+                logD("menu: settings touch action=" + event.getAction());
                 return false;
             }
         });
@@ -216,14 +216,14 @@ public class FullscreenActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         settingsParams.leftMargin = 18;
-        sidebarLayout.addView(settingsButton, settingsParams);
+        menuLayout.addView(settingsButton, settingsParams);
 
-        FrameLayout.LayoutParams sidebarParams = new FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams menuParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER);
-        root.addView(sidebarLayout, sidebarParams);
-        sidebarLayout.bringToFront();
+        root.addView(menuLayout, menuParams);
+        menuLayout.bringToFront();
 
         appRotateLayout = new RotateLayout(this);
         appRotateLayout.setAngle(APP_ROTATION_DEGREES);
@@ -234,7 +234,9 @@ public class FullscreenActivity extends Activity {
         setContentView(appRotateLayout);
 
         // Initial fetch (next display)
-        startFetch();
+        if (ensureCredentials()) {
+            startFetch();
+        }
     }
 
     @Override
@@ -246,7 +248,12 @@ public class FullscreenActivity extends Activity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        scheduleRefresh();
+        if (ensureCredentials()) {
+            if (!fetchInProgress) {
+                startFetch();
+            }
+            scheduleRefresh();
+        }
     }
 
     @Override
@@ -304,13 +311,16 @@ public class FullscreenActivity extends Activity {
     }
 
     private void startFetch() {
+        if (!ensureCredentials()) {
+            return;
+        }
         if (fetchInProgress) {
             return;
         }
         fetchInProgress = true;
         String httpsUrl = ApiConfig.API_BASE_URL + ApiConfig.API_DISPLAY_PATH;
         logD("start: " + httpsUrl);
-        ApiFetchTask.start(this, httpsUrl, ApiConfig.API_ID, ApiConfig.API_TOKEN);
+        ApiFetchTask.start(this, httpsUrl, ApiPrefs.getApiId(this), ApiPrefs.getApiToken(this));
     }
 
     private void scheduleRefresh() {
@@ -355,29 +365,29 @@ public class FullscreenActivity extends Activity {
         }
     }
 
-    private void toggleSidebar() {
-        if (sidebarVisible) {
-            hideSidebar();
+    private void toggleMenu() {
+        if (menuVisible) {
+            hideMenu();
         } else {
-            showSidebar();
+            showMenu();
         }
     }
 
-    private void showSidebar() {
-        sidebarVisible = true;
-        updateSidebarBattery();
-        if (sidebarLayout != null) sidebarLayout.setVisibility(View.VISIBLE);
-        if (sidebarScrim != null) sidebarScrim.setVisibility(View.VISIBLE);
+    private void showMenu() {
+        menuVisible = true;
+        updateMenuBattery();
+        if (menuLayout != null) menuLayout.setVisibility(View.VISIBLE);
+        if (menuScrim != null) menuScrim.setVisibility(View.VISIBLE);
     }
 
-    private void hideSidebar() {
-        sidebarVisible = false;
-        if (sidebarLayout != null) sidebarLayout.setVisibility(View.GONE);
-        if (sidebarScrim != null) sidebarScrim.setVisibility(View.GONE);
-        flashBlack();
+    private void hideMenu() {
+        menuVisible = false;
+        if (menuLayout != null) menuLayout.setVisibility(View.GONE);
+        if (menuScrim != null) menuScrim.setVisibility(View.GONE);
+        flashEinkTransition();
     }
 
-    private void updateSidebarBattery() {
+    private void updateMenuBattery() {
         if (batteryView == null) return;
         int percent = getBatteryPercent(this);
         if (percent >= 0) {
@@ -407,7 +417,7 @@ public class FullscreenActivity extends Activity {
         }, 40);
     }
 
-    private void refreshContentAfterSidebar() {
+    private void refreshContentAfterMenu() {
         if (imageView != null && imageView.getVisibility() == View.VISIBLE) {
             imageView.invalidate();
         }
@@ -425,7 +435,7 @@ public class FullscreenActivity extends Activity {
         }, 120);
     }
 
-    private void flashBlack() {
+    private void flashEinkTransition() {
         if (flashOverlay == null) {
             forceFullRefresh();
             return;
@@ -453,11 +463,19 @@ public class FullscreenActivity extends Activity {
                         if (flashOverlay != null) {
                             flashOverlay.setVisibility(View.GONE);
                         }
-                        refreshContentAfterSidebar();
+                        refreshContentAfterMenu();
                     }
                 }, 80);
             }
         }, 80);
+    }
+
+    private boolean ensureCredentials() {
+        if (!ApiPrefs.hasCredentials(this)) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return false;
+        }
+        return true;
     }
 
     private void logD(final String msg) {

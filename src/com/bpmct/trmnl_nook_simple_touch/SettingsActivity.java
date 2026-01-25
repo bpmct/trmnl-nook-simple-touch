@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -12,6 +13,7 @@ import android.view.ViewGroup;
 
 public class SettingsActivity extends Activity {
     private static final int APP_ROTATION_DEGREES = 90;
+    private TextView statusView;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -36,15 +38,59 @@ public class SettingsActivity extends Activity {
         title.setTextColor(0xFF000000);
         inner.addView(title);
 
-        TextView hint = new TextView(this);
-        hint.setText("Tap anywhere to return");
-        hint.setTextSize(14);
-        hint.setTextColor(0xFF000000);
-        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(
+        TextView statusLabel = new TextView(this);
+        statusLabel.setText("Credentials");
+        statusLabel.setTextSize(14);
+        statusLabel.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams statusLabelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        hintParams.topMargin = 12;
-        inner.addView(hint, hintParams);
+        statusLabelParams.topMargin = 16;
+        inner.addView(statusLabel, statusLabelParams);
+
+        statusView = new TextView(this);
+        statusView.setTextSize(12);
+        statusView.setTextColor(0xFF000000);
+        statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        statusParams.topMargin = 6;
+        inner.addView(statusView, statusParams);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsParams.topMargin = 16;
+        inner.addView(actions, actionsParams);
+
+        Button editButton = new Button(this);
+        editButton.setText("Edit");
+        editButton.setTextColor(0xFF000000);
+        actions.addView(editButton);
+
+        Button backButton = new Button(this);
+        backButton.setText("Back");
+        backButton.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        backParams.leftMargin = 16;
+        actions.addView(backButton, backParams);
+
+        editButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startActivity(new android.content.Intent(SettingsActivity.this, CredentialsActivity.class));
+            }
+        });
+
+        backButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         FrameLayout.LayoutParams rotateParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -52,17 +98,18 @@ public class SettingsActivity extends Activity {
                 Gravity.CENTER);
         root.addView(inner, rotateParams);
 
-        root.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                finish();
-            }
-        });
-
         RotateLayout rotateRoot = new RotateLayout(this);
         rotateRoot.setAngle(APP_ROTATION_DEGREES);
         rotateRoot.addView(root, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
         setContentView(rotateRoot);
+    }
+
+    protected void onResume() {
+        super.onResume();
+        if (statusView != null) {
+            statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
+        }
     }
 }
