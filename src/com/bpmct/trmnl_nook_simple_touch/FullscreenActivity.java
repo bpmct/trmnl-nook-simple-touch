@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.Locale;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -116,20 +117,19 @@ public class FullscreenActivity extends Activity {
     }
 
     /**
-     * Reads battery level from ACTION_BATTERY_CHANGED sticky broadcast (API 7).
-     * Returns 0–100, or -1 if unknown.
+     * Reads battery voltage from ACTION_BATTERY_CHANGED sticky broadcast (API 7).
+     * EXTRA_VOLTAGE is millivolts; returns volts (e.g. 3.6f), or -1f if unknown.
      */
-    private static int getBatteryLevelPercent(Context context) {
-        if (context == null) return -1;
+    private static float getBatteryVoltage(Context context) {
+        if (context == null) return -1f;
         try {
             Intent intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-            if (intent == null) return -1;
-            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0);
-            if (scale <= 0 || level < 0) return -1;
-            return (level * 100) / scale;
+            if (intent == null) return -1f;
+            int mv = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+            if (mv <= 0) return -1f;
+            return mv / 1000f;
         } catch (Throwable t) {
-            return -1;
+            return -1f;
         }
     }
 
@@ -255,9 +255,9 @@ public class FullscreenActivity extends Activity {
         protected Object doInBackground(Object[] params) {
             String httpsUrl = (String) params[0];
             FullscreenActivity a = (FullscreenActivity) activityRef.get();
-            int batteryLevel = getBatteryLevelPercent(a != null ? a : null);
+            float batteryVoltage = getBatteryVoltage(a != null ? a : null);
             int rssi = getWifiRssi(a != null ? a : null);
-            if (a != null && batteryLevel >= 0) a.logD("battery-level: " + batteryLevel);
+            if (a != null && batteryVoltage >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", batteryVoltage));
             if (a != null && rssi != -999) a.logD("rssi: " + rssi);
             
             // Try BouncyCastle TLS first (supports TLS 1.2)
@@ -268,7 +268,7 @@ public class FullscreenActivity extends Activity {
                         httpsUrl,
                         apiId,
                         apiToken,
-                        batteryLevel,
+                        batteryVoltage,
                         rssi);
                 if (bcResult != null && !bcResult.startsWith("Error:")) {
                     ApiResult parsed = null;
@@ -284,7 +284,7 @@ public class FullscreenActivity extends Activity {
             }
             
             // Fallback to system HttpURLConnection (TLS 1.0 only)
-            Object result = fetchUrl(httpsUrl, true, apiId, apiToken, batteryLevel, rssi);
+            Object result = fetchUrl(httpsUrl, true, apiId, apiToken, batteryVoltage, rssi);
             if (result != null && !result.toString().startsWith("Error:")) {
                 ApiResult parsed = null;
                 if (a != null) {
@@ -299,7 +299,7 @@ public class FullscreenActivity extends Activity {
             return result;
         }
         
-        private Object fetchUrl(String url, boolean isHttps, String apiId, String apiToken, int batteryLevel, int rssi) {
+        private Object fetchUrl(String url, boolean isHttps, String apiId, String apiToken, float batteryVoltage, int rssi) {
             HttpURLConnection conn = null;
             try {
                 FullscreenActivity a0 = (FullscreenActivity) activityRef.get();
@@ -318,9 +318,8 @@ public class FullscreenActivity extends Activity {
                 if (apiToken != null) {
                     conn.setRequestProperty("access-token", apiToken);
                 }
-                if (batteryLevel >= 0) {
-                    conn.setRequestProperty("battery-level", String.valueOf(batteryLevel));
-                    conn.setRequestProperty("Battery-Voltage", String.valueOf(batteryLevel));
+                if (batteryVoltage >= 0f) {
+                    conn.setRequestProperty("Battery-Voltage", String.format(Locale.US, "%.1f", batteryVoltage));
                 }
                 if (rssi != -999) {
                     conn.setRequestProperty("rssi", String.valueOf(rssi));
@@ -418,8 +417,8 @@ public class FullscreenActivity extends Activity {
                     }
                     a.logD("displayed image");
                     a.logD("next display in " + (a.refreshMs / 1000L) + "s");
-                    int bat = getBatteryLevelPercent(a);
-                    if (bat >= 0) a.logD("battery-level: " + bat);
+                    float v = getBatteryVoltage(a);
+                    if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
                     int rssi = getWifiRssi(a);
                     if (rssi != -999) a.logD("rssi: " + rssi);
                     return;
@@ -439,8 +438,8 @@ public class FullscreenActivity extends Activity {
                 a.logD("response body:\n" + text);
                 a.logD("displayed response");
                 a.logD("next display in " + (a.refreshMs / 1000L) + "s");
-                int bat = getBatteryLevelPercent(a);
-                if (bat >= 0) a.logD("battery-level: " + bat);
+                float v = getBatteryVoltage(a);
+                if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
                 int rssi = getWifiRssi(a);
                 if (rssi != -999) a.logD("rssi: " + rssi);
                 return;
@@ -451,8 +450,8 @@ public class FullscreenActivity extends Activity {
             a.logD("response body:\n" + text);
             a.logD("displayed response");
             a.logD("next display in " + (a.refreshMs / 1000L) + "s");
-            int bat = getBatteryLevelPercent(a);
-            if (bat >= 0) a.logD("battery-level: " + bat);
+            float v = getBatteryVoltage(a);
+            if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
             int rssi = getWifiRssi(a);
             if (rssi != -999) a.logD("rssi: " + rssi);
         }
