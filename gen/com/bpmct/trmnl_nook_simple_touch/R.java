@@ -16,7 +16,7 @@ public final class R {
         public static final int ic_launcher=0x7f020002;
     }
     public static final class id {
-        public static final int fullscreen_content=0x7f060000;
+        public static final int webview=0x7f060000;
     }
     public static final class layout {
         public static final int activity_fullscreen=0x7f030000;

@@ -3,15 +3,10 @@
     android:layout_height="match_parent"
     android:background="@android:color/white" >
 
-    <TextView
-        android:id="@+id/fullscreen_content"
+    <WebView
+        android:id="@+id/webview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:keepScreenOn="true"
-        android:text="@string/dummy_content"
-        android:textColor="@android:color/black"
-        android:textSize="50sp"
-        android:textStyle="bold" />
+        android:keepScreenOn="true" />
 
 </FrameLayout>
