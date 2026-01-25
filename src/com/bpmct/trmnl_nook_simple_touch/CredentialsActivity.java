@@ -37,6 +37,28 @@ public class CredentialsActivity extends Activity {
         title.setTextColor(0xFF000000);
         inner.addView(title);
 
+        TextView baseUrlLabel = new TextView(this);
+        baseUrlLabel.setText("API Base URL");
+        baseUrlLabel.setTextSize(14);
+        baseUrlLabel.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams baseUrlLabelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        baseUrlLabelParams.topMargin = 16;
+        inner.addView(baseUrlLabel, baseUrlLabelParams);
+
+        final EditText baseUrlInput = new EditText(this);
+        baseUrlInput.setSingleLine(true);
+        baseUrlInput.setTextColor(0xFF000000);
+        baseUrlInput.setTextSize(18);
+        baseUrlInput.setPadding(12, 12, 12, 12);
+        baseUrlInput.setHint(ApiConfig.API_BASE_URL);
+        baseUrlInput.setText(ApiPrefs.getApiBaseUrl(this));
+        LinearLayout.LayoutParams baseUrlParams = new LinearLayout.LayoutParams(
+                420,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        inner.addView(baseUrlInput, baseUrlParams);
+
         TextView idLabel = new TextView(this);
         idLabel.setText("Device ID (MAC Address)");
         idLabel.setTextSize(14);
@@ -44,7 +66,7 @@ public class CredentialsActivity extends Activity {
         LinearLayout.LayoutParams idLabelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        idLabelParams.topMargin = 16;
+        idLabelParams.topMargin = 12;
         inner.addView(idLabel, idLabelParams);
 
         final EditText idInput = new EditText(this);
@@ -127,12 +149,18 @@ public class CredentialsActivity extends Activity {
             public void onClick(View v) {
                 String id = idInput.getText() != null ? idInput.getText().toString().trim() : "";
                 String token = tokenInput.getText() != null ? tokenInput.getText().toString().trim() : "";
+                String baseUrl = baseUrlInput.getText() != null ? baseUrlInput.getText().toString().trim() : "";
                 if (id.length() == 0 || token.length() == 0) {
                     statusView.setText("Device ID and API Key are required.");
                     return;
                 }
                 ApiPrefs.saveCredentials(CredentialsActivity.this, id, token);
+                ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, baseUrl);
                 statusView.setText("Saved.");
+                android.content.Intent intent = new android.content.Intent(CredentialsActivity.this, FullscreenActivity.class);
+                intent.putExtra(FullscreenActivity.EXTRA_CLEAR_IMAGE, true);
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
                 finish();
             }
         });
@@ -141,6 +169,8 @@ public class CredentialsActivity extends Activity {
             public void onClick(View v) {
                 idInput.setText("");
                 tokenInput.setText("");
+                baseUrlInput.setText(ApiConfig.API_BASE_URL);
+                ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, ApiConfig.API_BASE_URL);
                 statusView.setText("");
             }
         });

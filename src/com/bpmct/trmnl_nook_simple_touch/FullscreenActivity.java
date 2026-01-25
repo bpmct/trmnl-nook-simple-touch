@@ -318,7 +318,7 @@ public class FullscreenActivity extends Activity {
             return;
         }
         fetchInProgress = true;
-        String httpsUrl = ApiConfig.API_BASE_URL + ApiConfig.API_DISPLAY_PATH;
+        String httpsUrl = ApiPrefs.getApiBaseUrl(this) + ApiConfig.API_DISPLAY_PATH;
         logD("start: " + httpsUrl);
         ApiFetchTask.start(this, httpsUrl, ApiPrefs.getApiId(this), ApiPrefs.getApiToken(this));
     }
@@ -557,6 +557,7 @@ public class FullscreenActivity extends Activity {
                     return new ApiResult(bcResult);
                 }
                 if (a != null) a.logW("BouncyCastle TLS failed: " + bcResult);
+                return bcResult;
             }
             
             // Fallback to system HttpURLConnection (TLS 1.0 only)
