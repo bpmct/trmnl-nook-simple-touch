@@ -14,14 +14,6 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 public class FullscreenActivity extends Activity {
     private static final String TAG = "TRMNLAPI";
@@ -29,8 +21,6 @@ public class FullscreenActivity extends Activity {
     private TextView logView;
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_CHARS = 6000;
-    private static SSLSocketFactory trustAllSocketFactory = null;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,11 +61,10 @@ public class FullscreenActivity extends Activity {
 
         setContentView(root);
 
-        // Fetch API (try HTTPS first, fallback to HTTP if SSL fails)
+        // Fetch API (HTTPS)
         String httpsUrl = ApiConfig.API_BASE_URL + ApiConfig.API_DISPLAY_PATH;
-        String httpUrl = httpsUrl.replace("https://", "http://");
         logD("start: " + httpsUrl);
-        ApiFetchTask.start(this, httpsUrl, httpUrl, ApiConfig.API_ID, ApiConfig.API_TOKEN);
+        ApiFetchTask.start(this, httpsUrl, ApiConfig.API_ID, ApiConfig.API_TOKEN);
     }
 
     @Override
@@ -133,22 +122,20 @@ public class FullscreenActivity extends Activity {
     private static class ApiFetchTask extends AsyncTask {
         private final WeakReference activityRef;
         private final String httpsUrl;
-        private final String httpUrl;
         private final String apiId;
         private final String apiToken;
 
-        private ApiFetchTask(FullscreenActivity activity, String httpsUrl, String httpUrl, String apiId, String apiToken) {
+        private ApiFetchTask(FullscreenActivity activity, String httpsUrl, String apiId, String apiToken) {
             this.activityRef = new WeakReference(activity);
             this.httpsUrl = httpsUrl;
-            this.httpUrl = httpUrl;
             this.apiId = apiId;
             this.apiToken = apiToken;
         }
 
-        public static void start(FullscreenActivity activity, String httpsUrl, String httpUrl, String apiId, String apiToken) {
+        public static void start(FullscreenActivity activity, String httpsUrl, String apiId, String apiToken) {
             if (activity == null || httpsUrl == null) return;
             try {
-                new ApiFetchTask(activity, httpsUrl, httpUrl, apiId, apiToken).execute(new Object[] { httpsUrl, httpUrl });
+                new ApiFetchTask(activity, httpsUrl, apiId, apiToken).execute(new Object[] { httpsUrl });
             } catch (Throwable t) {
                 activity.logE("fetch start failed", t);
             }
@@ -156,7 +143,6 @@ public class FullscreenActivity extends Activity {
 
         protected Object doInBackground(Object[] params) {
             String httpsUrl = (String) params[0];
-            String httpUrl = params.length > 1 ? (String) params[1] : null;
             
             // Try BouncyCastle TLS first (supports TLS 1.2)
             if (BouncyCastleHttpClient.isAvailable()) {
@@ -176,26 +162,6 @@ public class FullscreenActivity extends Activity {
             // Fallback to system HttpURLConnection (TLS 1.0 only)
             Object result = fetchUrl(httpsUrl, true, apiId, apiToken);
             
-            // If HTTPS fails with SSL error, try HTTP fallback
-            if (result != null && result.toString().contains("SSL") && httpUrl != null) {
-                FullscreenActivity a = (FullscreenActivity) activityRef.get();
-                if (a != null) a.logW("HTTPS failed with SSL error, trying HTTP fallback");
-                Object httpResult = fetchUrl(httpUrl, false, apiId, apiToken);
-
-                // If the server rejects plain HTTP, give a clearer, actionable message.
-                if (httpResult != null && httpResult.toString().startsWith("Error: HTTP ")) {
-                    String msg =
-                            "HTTPS failed due to TLS/SSL handshake.\n\n" +
-                            "System TLS (TLS 1.0 only) failed. BouncyCastle TLS 1.2 " +
-                            (BouncyCastleHttpClient.isAvailable() ? "also failed" : "not available (see libs/README_SPONGYCASTLE.md)") + ".\n\n" +
-                            "HTTP fallback also failed (" + httpResult + ").\n\n" +
-                            "Fix: run a local HTTP→HTTPS proxy on your LAN and set ApiConfig.API_BASE_URL to that proxy (http://<LAN-IP>:<PORT>).";
-                    return msg;
-                }
-
-                result = httpResult;
-            }
-            
             return result;
         }
         
@@ -206,25 +172,6 @@ public class FullscreenActivity extends Activity {
                 if (a0 != null) a0.logD("fetching: " + url + (isHttps ? " (HTTPS)" : " (HTTP)"));
                 URL u = new URL(url);
                 conn = (HttpURLConnection) u.openConnection();
-                
-                // Use custom SSL socket factory and hostname verifier for API 7 compatibility (HTTPS only)
-                if (isHttps && conn instanceof HttpsURLConnection) {
-                    HttpsURLConnection https = (HttpsURLConnection) conn;
-                    SSLSocketFactory factory = getTrustAllSocketFactory();
-                    if (factory != null) {
-                        FullscreenActivity a1 = (FullscreenActivity) activityRef.get();
-                        if (a1 != null) a1.logD("setting custom SSL socket factory");
-                        https.setSSLSocketFactory(factory);
-                    } else {
-                        FullscreenActivity a2 = (FullscreenActivity) activityRef.get();
-                        if (a2 != null) a2.logW("custom SSL socket factory is null, using default");
-                    }
-                    // Also bypass hostname verification (for testing only)
-                    https.setHostnameVerifier(getTrustAllHostnameVerifier());
-                    FullscreenActivity a3 = (FullscreenActivity) activityRef.get();
-                    if (a3 != null) a3.logD("setting trust-all hostname verifier");
-                }
-                
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(20000);
                 conn.setRequestProperty("User-Agent", "TRMNL-Nook/1.0 (Android 2.1)");
@@ -314,64 +261,5 @@ public class FullscreenActivity extends Activity {
             a.contentView.setText(text);
             a.logD("displayed response");
         }
-    }
-
-    /**
-     * Creates an SSLSocketFactory that accepts all certificates (testing only).
-     * On API 7, we need to use "TLS" or "SSL" protocol, and handle old cipher suites.
-     */
-    private static synchronized SSLSocketFactory getTrustAllSocketFactory() {
-        if (trustAllSocketFactory != null) {
-            return trustAllSocketFactory;
-        }
-        try {
-            TrustManager[] trustAllCerts = new TrustManager[] {
-                new X509TrustManager() {
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                    public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                    }
-                    public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                    }
-                }
-            };
-            
-            // Try TLS first, fallback to SSL for API 7
-            SSLContext sc = null;
-            try {
-                sc = SSLContext.getInstance("TLS");
-                Log.d(TAG, "using TLS protocol");
-            } catch (Throwable t) {
-                try {
-                    sc = SSLContext.getInstance("SSL");
-                    Log.d(TAG, "using SSL protocol (fallback)");
-                } catch (Throwable t2) {
-                    Log.e(TAG, "failed to get SSLContext: " + t2);
-                    return null;
-                }
-            }
-            
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            trustAllSocketFactory = sc.getSocketFactory();
-            Log.d(TAG, "created trust-all socket factory");
-            return trustAllSocketFactory;
-        } catch (Throwable t) {
-            Log.e(TAG, "failed to create trust-all socket factory: " + t, t);
-            return null;
-        }
-    }
-
-    /**
-     * Creates a HostnameVerifier that accepts all hostnames (testing only).
-     * This bypasses the "Hostname was not verified" error on API 7.
-     */
-    private static HostnameVerifier getTrustAllHostnameVerifier() {
-        return new HostnameVerifier() {
-            public boolean verify(String hostname, SSLSession session) {
-                Log.d(TAG, "hostname verification: accepting " + hostname);
-                return true; // Accept all hostnames
-            }
-        };
     }
 }

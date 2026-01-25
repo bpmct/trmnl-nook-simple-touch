@@ -15,9 +15,11 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import javax.security.auth.x500.X500Principal;
 
 import org.spongycastle.tls.AlertDescription;
 import org.spongycastle.tls.CertificateRequest;
@@ -275,6 +277,10 @@ public class BouncyCastleHttpClient {
                             }
                             String authType = chain[0].getPublicKey().getAlgorithm();
                             tm.checkServerTrusted(chain, authType);
+                            if (!verifyHostname(hostname, chain[0])) {
+                                Log.e(TAG, "BC hostname verification failed for " + hostname);
+                                throw new TlsFatalAlert(AlertDescription.bad_certificate);
+                            }
                             Log.d(TAG, "BC server certificate validated against CA bundle");
                         } catch (TlsFatalAlert e) {
                             throw e;
@@ -360,5 +366,89 @@ public class BouncyCastleHttpClient {
             chain[i] = (X509Certificate) cf.generateCertificate(bais);
         }
         return chain;
+    }
+
+    private static boolean verifyHostname(String hostname, X509Certificate cert) {
+        if (hostname == null || hostname.length() == 0 || cert == null) {
+            return false;
+        }
+        String host = hostname.toLowerCase();
+        try {
+            Collection altNames = cert.getSubjectAlternativeNames();
+            if (altNames != null) {
+                java.util.Iterator it = altNames.iterator();
+                while (it.hasNext()) {
+                    Object entryObj = it.next();
+                    if (!(entryObj instanceof List)) {
+                        continue;
+                    }
+                    List entry = (List) entryObj;
+                    if (entry.size() < 2) {
+                        continue;
+                    }
+                    Integer type = (Integer) entry.get(0);
+                    Object value = entry.get(1);
+                    if (type != null && value != null) {
+                        if (type.intValue() == 2) { // dNSName
+                            String dns = value.toString().toLowerCase();
+                            if (matchHostname(host, dns)) {
+                                return true;
+                            }
+                        } else if (type.intValue() == 7) { // iPAddress
+                            if (host.equals(value.toString().toLowerCase())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "BC SAN parse failed, falling back to CN: " + t);
+        }
+
+        String cn = getCommonName(cert);
+        if (cn != null && matchHostname(host, cn.toLowerCase())) {
+            return true;
+        }
+        return false;
+    }
+
+    private static String getCommonName(X509Certificate cert) {
+        try {
+            X500Principal principal = cert.getSubjectX500Principal();
+            if (principal == null) {
+                return null;
+            }
+            String dn = principal.getName("RFC2253");
+            String[] parts = dn.split(",");
+            for (int i = 0; i < parts.length; i++) {
+                String part = parts[i].trim();
+                if (part.startsWith("CN=") && part.length() > 3) {
+                    return part.substring(3);
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "BC CN parse failed: " + t);
+        }
+        return null;
+    }
+
+    private static boolean matchHostname(String hostname, String pattern) {
+        if (hostname == null || pattern == null) {
+            return false;
+        }
+        String host = hostname.toLowerCase();
+        String pat = pattern.toLowerCase();
+        if (host.equals(pat)) {
+            return true;
+        }
+        if (pat.startsWith("*.")) {
+            String suffix = pat.substring(1); // ".example.com"
+            if (host.endsWith(suffix)) {
+                String prefix = host.substring(0, host.length() - suffix.length());
+                return prefix.length() > 0 && prefix.indexOf('.') == -1;
+            }
+        }
+        return false;
     }
 }
