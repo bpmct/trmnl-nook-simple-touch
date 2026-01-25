@@ -2,12 +2,10 @@ package com.bpmct.trmnl_nook_simple_touch;
 
 import android.content.Context;
 import android.util.Log;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -18,7 +16,6 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Locale;
 import java.util.Vector;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -65,12 +62,10 @@ public class BouncyCastleHttpClient {
     /**
      * Makes an HTTPS GET request using BouncyCastle TLS.
      * Returns response body as string, or error message on failure.
-     * batteryVoltage in volts (e.g. 3.6f) is sent as Battery-Voltage when >= 0; use -1f to omit.
-     * rssi is sent as rssi header when != -999 (e.g. -69 dBm); use -999 to omit.
      */
-    public static String getHttps(Context context, String url, String apiId, String apiToken, float batteryVoltage, int rssi) {
+    public static String getHttps(Context context, String url, Hashtable headers) {
         try {
-            return getHttpsImpl(context, url, apiId, apiToken, batteryVoltage, rssi);
+            return getHttpsImpl(context, url, headers);
         } catch (Throwable t) {
             Log.e(TAG, "BouncyCastle HTTPS failed", t);
             // Get full error message including class name
@@ -87,28 +82,32 @@ public class BouncyCastleHttpClient {
         }
     }
 
-    public static String getHttps(Context context, String url, String apiId, String apiToken) {
-        return getHttps(context, url, apiId, apiToken, -1f, -999);
+    public static String getHttps(Context context, String url) {
+        return getHttps(context, url, null);
     }
 
-    public static String getHttps(String url, String apiId, String apiToken) {
-        return getHttps(null, url, apiId, apiToken, -1f, -999);
+    public static String getHttps(String url) {
+        return getHttps(null, url, null);
     }
 
     /**
      * Makes an HTTPS GET request and returns raw bytes (e.g., images).
      * Returns null on failure.
      */
-    public static byte[] getHttpsBytes(Context context, String url) {
+    public static byte[] getHttpsBytes(Context context, String url, Hashtable headers) {
         try {
-            return getHttpsBytesImpl(context, url);
+            return getHttpsBytesImpl(context, url, headers);
         } catch (Throwable t) {
             Log.e(TAG, "BouncyCastle HTTPS bytes failed", t);
             return null;
         }
     }
+
+    public static byte[] getHttpsBytes(Context context, String url) {
+        return getHttpsBytes(context, url, null);
+    }
     
-    private static String getHttpsImpl(Context context, String url, String apiId, String apiToken, float batteryVoltage, int rssi) throws Exception {
+    private static String getHttpsImpl(Context context, String url, Hashtable headers) throws Exception {
         // Parse URL
         java.net.URL u = new java.net.URL(url);
         String host = u.getHost();
@@ -152,22 +151,7 @@ public class BouncyCastleHttpClient {
             // Send HTTP request
             PrintWriter writer = new PrintWriter(tlsOut, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writer.print("Host: " + host + "\r\n");
-            writer.print("User-Agent: TRMNL-Nook/1.0 (Android 2.1)\r\n");
-            writer.print("Accept: application/json\r\n");
-            if (apiId != null) {
-                writer.print("ID: " + apiId + "\r\n");
-            }
-            if (apiToken != null) {
-                writer.print("access-token: " + apiToken + "\r\n");
-            }
-            if (batteryVoltage >= 0f) {
-                writer.print("Battery-Voltage: " + String.format(Locale.US, "%.1f", batteryVoltage) + "\r\n");
-            }
-            if (rssi != -999) {
-                writer.print("rssi: " + rssi + "\r\n");
-            }
-            writer.print("Connection: close\r\n");
+            writeHeaders(writer, headers, host);
             writer.print("\r\n");
             writer.flush();
             
@@ -276,7 +260,7 @@ public class BouncyCastleHttpClient {
         }
     }
 
-    private static byte[] getHttpsBytesImpl(Context context, String url) throws Exception {
+    private static byte[] getHttpsBytesImpl(Context context, String url, Hashtable headers) throws Exception {
         java.net.URL u = new java.net.URL(url);
         String host = u.getHost();
         int port = u.getPort() > 0 ? u.getPort() : 443;
@@ -312,10 +296,7 @@ public class BouncyCastleHttpClient {
 
             PrintWriter writer = new PrintWriter(tlsOut, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writer.print("Host: " + host + "\r\n");
-            writer.print("User-Agent: TRMNL-Nook/1.0 (Android 2.1)\r\n");
-            writer.print("Accept: image/*\r\n");
-            writer.print("Connection: close\r\n");
+            writeHeaders(writer, headers, host);
             writer.print("\r\n");
             writer.flush();
 
@@ -403,6 +384,51 @@ public class BouncyCastleHttpClient {
             return null;
         }
         return new String(line.toByteArray(), "ISO-8859-1");
+    }
+
+    private static void writeHeaders(PrintWriter writer, Hashtable headers, String host) {
+        boolean hasHost = hasHeader(headers, "Host");
+        boolean hasConnection = hasHeader(headers, "Connection");
+        if (!hasHost && host != null && host.length() > 0) {
+            writer.print("Host: " + host + "\r\n");
+        }
+        if (headers != null) {
+            java.util.Enumeration e = headers.keys();
+            while (e.hasMoreElements()) {
+                Object keyObj = e.nextElement();
+                if (keyObj == null) {
+                    continue;
+                }
+                String key = keyObj.toString();
+                Object valueObj = headers.get(keyObj);
+                if (valueObj == null) {
+                    continue;
+                }
+                String value = valueObj.toString();
+                writer.print(key + ": " + value + "\r\n");
+            }
+        }
+        if (!hasConnection) {
+            writer.print("Connection: close\r\n");
+        }
+    }
+
+    private static boolean hasHeader(Hashtable headers, String name) {
+        if (headers == null || name == null) {
+            return false;
+        }
+        java.util.Enumeration e = headers.keys();
+        while (e.hasMoreElements()) {
+            Object keyObj = e.nextElement();
+            if (keyObj == null) {
+                continue;
+            }
+            String key = keyObj.toString();
+            if (name.equalsIgnoreCase(key)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private static DefaultTlsClient createTlsClient(final String hostname, final X509TrustManager tm) {

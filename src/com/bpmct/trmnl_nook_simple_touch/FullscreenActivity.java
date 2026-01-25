@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.Hashtable;
 import java.util.Locale;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -263,13 +264,11 @@ public class FullscreenActivity extends Activity {
             // Try BouncyCastle TLS first (supports TLS 1.2)
             if (BouncyCastleHttpClient.isAvailable()) {
                 if (a != null) a.logD("trying BouncyCastle TLS 1.2");
+                Hashtable headers = buildApiHeaders(apiId, apiToken, batteryVoltage, rssi);
                 String bcResult = BouncyCastleHttpClient.getHttps(
                         a != null ? a.getApplicationContext() : null,
                         httpsUrl,
-                        apiId,
-                        apiToken,
-                        batteryVoltage,
-                        rssi);
+                        headers);
                 if (bcResult != null && !bcResult.startsWith("Error:")) {
                     ApiResult parsed = null;
                     if (a != null) {
@@ -506,9 +505,11 @@ public class FullscreenActivity extends Activity {
             } catch (Throwable ignored) {
             }
 
+            Hashtable headers = buildImageHeaders();
             byte[] imageBytes = BouncyCastleHttpClient.getHttpsBytes(
                     getApplicationContext(),
-                    imageUrl);
+                    imageUrl,
+                    headers);
             if (imageBytes == null || imageBytes.length == 0) {
                 logW("image fetch failed for url: " + imageUrl);
                 return new ApiResult(jsonText);
@@ -540,5 +541,31 @@ public class FullscreenActivity extends Activity {
             logW("image rotate failed: " + t);
             return src;
         }
+    }
+
+    private static Hashtable buildApiHeaders(String apiId, String apiToken, float batteryVoltage, int rssi) {
+        Hashtable headers = new Hashtable();
+        headers.put("User-Agent", "TRMNL-Nook/1.0 (Android 2.1)");
+        headers.put("Accept", "application/json");
+        if (apiId != null) {
+            headers.put("ID", apiId);
+        }
+        if (apiToken != null) {
+            headers.put("access-token", apiToken);
+        }
+        if (batteryVoltage >= 0f) {
+            headers.put("Battery-Voltage", String.format(Locale.US, "%.1f", batteryVoltage));
+        }
+        if (rssi != -999) {
+            headers.put("rssi", String.valueOf(rssi));
+        }
+        return headers;
+    }
+
+    private static Hashtable buildImageHeaders() {
+        Hashtable headers = new Hashtable();
+        headers.put("User-Agent", "TRMNL-Nook/1.0 (Android 2.1)");
+        headers.put("Accept", "image/*");
+        return headers;
     }
 }
