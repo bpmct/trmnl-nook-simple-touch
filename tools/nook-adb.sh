@@ -16,7 +16,7 @@ set -euo pipefail
 # - You may need to run: chmod +x tools/nook-adb.sh
 
 APP_PKG="com.bpmct.trmnl_nook_simple_touch"
-APP_ACTIVITY=".FullscreenActivity"
+APP_ACTIVITY=".DisplayActivity"
 DEFAULT_LOGCAT_FILTER="TRMNLAPI:D BCHttpClient:D *:S"
 
 DEFAULT_ADT_ADB="${HOME}/Downloads/adt-bundle-linux-x86_64-20140702/adt-bundle-linux-x86_64-20140702/sdk/platform-tools/adb"

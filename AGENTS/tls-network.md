@@ -61,7 +61,7 @@ Error handling:
 - Show user-friendly errors on screen.
 - Detect SSL errors and trigger HTTP fallback.
 
-Example pattern (see `FullscreenActivity.java`):
+Example pattern (see `DisplayActivity.java`):
 ```java
 // Try HTTPS first
 Object result = fetchUrl(httpsUrl, true);

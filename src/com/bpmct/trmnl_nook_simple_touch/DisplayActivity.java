@@ -34,7 +34,7 @@ import org.json.JSONObject;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-public class FullscreenActivity extends Activity {
+public class DisplayActivity extends Activity {
     public static final String EXTRA_CLEAR_IMAGE = "clear_image";
     private static final String TAG = "TRMNLAPI";
     private static final long DEFAULT_REFRESH_MS = 15 * 60 * 1000;
@@ -201,7 +201,7 @@ public class FullscreenActivity extends Activity {
                 logD("menu: settings tapped");
                 hideMenu();
                 try {
-                    startActivity(new Intent(FullscreenActivity.this, SettingsActivity.class));
+                    startActivity(new Intent(DisplayActivity.this, SettingsActivity.class));
                 } catch (Throwable t) {
                     logW("settings launch failed: " + t);
                 }
@@ -532,14 +532,14 @@ public class FullscreenActivity extends Activity {
         private final String httpsUrl;
         private final String apiId;
         private final String apiToken;
-        private ApiFetchTask(FullscreenActivity activity, String httpsUrl, String apiId, String apiToken) {
+        private ApiFetchTask(DisplayActivity activity, String httpsUrl, String apiId, String apiToken) {
             this.activityRef = new WeakReference(activity);
             this.httpsUrl = httpsUrl;
             this.apiId = apiId;
             this.apiToken = apiToken;
         }
 
-        public static void start(FullscreenActivity activity, String httpsUrl, String apiId, String apiToken) {
+        public static void start(DisplayActivity activity, String httpsUrl, String apiId, String apiToken) {
             if (activity == null || httpsUrl == null) return;
             try {
                 new ApiFetchTask(activity, httpsUrl, apiId, apiToken).execute(new Object[] { httpsUrl });
@@ -550,7 +550,7 @@ public class FullscreenActivity extends Activity {
 
         protected Object doInBackground(Object[] params) {
             String httpsUrl = (String) params[0];
-            FullscreenActivity a = (FullscreenActivity) activityRef.get();
+            DisplayActivity a = (DisplayActivity) activityRef.get();
             float batteryVoltage = getBatteryVoltage(a != null ? a : null);
             int rssi = getWifiRssi(a != null ? a : null);
             if (a != null && batteryVoltage >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", batteryVoltage));
@@ -600,7 +600,7 @@ public class FullscreenActivity extends Activity {
                                 float batteryVoltage, int rssi) {
             HttpURLConnection conn = null;
             try {
-                FullscreenActivity a0 = (FullscreenActivity) activityRef.get();
+                DisplayActivity a0 = (DisplayActivity) activityRef.get();
                 if (a0 != null) a0.logD("fetching: " + url + (isHttps ? " (HTTPS)" : " (HTTP)"));
                 URL u = new URL(url);
                 conn = (HttpURLConnection) u.openConnection();
@@ -628,7 +628,7 @@ public class FullscreenActivity extends Activity {
                     conn.connect();
                 } catch (Throwable t) {
                     String errorMsg = "Error: " + t.getMessage();
-                    FullscreenActivity a4 = (FullscreenActivity) activityRef.get();
+                    DisplayActivity a4 = (DisplayActivity) activityRef.get();
                     if (a4 != null) a4.logE("connect() failed", t);
                     return errorMsg;
                 }
@@ -638,22 +638,22 @@ public class FullscreenActivity extends Activity {
                     code = conn.getResponseCode();
                 } catch (Throwable t) {
                     String errorMsg = "Error: " + t.getMessage();
-                    FullscreenActivity a5 = (FullscreenActivity) activityRef.get();
+                    DisplayActivity a5 = (DisplayActivity) activityRef.get();
                     if (a5 != null) a5.logE("getResponseCode() failed", t);
                     // Log full stack trace for SSL errors
                     if (t.getMessage() != null && t.getMessage().contains("SSL")) {
-                        FullscreenActivity a6 = (FullscreenActivity) activityRef.get();
+                        DisplayActivity a6 = (DisplayActivity) activityRef.get();
                         if (a6 != null) a6.logE("SSL error details", t);
                     }
                     return errorMsg;
                 }
                 
-                FullscreenActivity a7 = (FullscreenActivity) activityRef.get();
+                DisplayActivity a7 = (DisplayActivity) activityRef.get();
                 if (a7 != null) a7.logD("response code: " + code);
                 
                 if (code == -1) {
                     String errorMsg = "Error: Connection failed (code=-1)";
-                    FullscreenActivity a8 = (FullscreenActivity) activityRef.get();
+                    DisplayActivity a8 = (DisplayActivity) activityRef.get();
                     if (a8 != null) a8.logW(errorMsg);
                     return errorMsg;
                 }
@@ -668,7 +668,7 @@ public class FullscreenActivity extends Activity {
                     }
                     is.close();
                     String json = sb.toString();
-                    FullscreenActivity a9 = (FullscreenActivity) activityRef.get();
+                DisplayActivity a9 = (DisplayActivity) activityRef.get();
                     if (a9 != null) a9.logD("got " + json.length() + " chars from " + (isHttps ? "HTTPS" : "HTTP"));
                     return json;
                 } else {
@@ -676,11 +676,11 @@ public class FullscreenActivity extends Activity {
                 }
             } catch (Throwable t) {
                 String errorMsg = "Error: " + t.getMessage();
-                FullscreenActivity a10 = (FullscreenActivity) activityRef.get();
+                DisplayActivity a10 = (DisplayActivity) activityRef.get();
                 if (a10 != null) a10.logE("fetch failed", t);
                 // Log full stack trace for SSL errors
                 if (t.getMessage() != null && t.getMessage().contains("SSL")) {
-                    FullscreenActivity a11 = (FullscreenActivity) activityRef.get();
+                    DisplayActivity a11 = (DisplayActivity) activityRef.get();
                     if (a11 != null) a11.logE("SSL error full stack trace", t);
                 }
                 return errorMsg;
@@ -692,7 +692,7 @@ public class FullscreenActivity extends Activity {
         }
 
         protected void onPostExecute(Object result) {
-            final FullscreenActivity a = (FullscreenActivity) activityRef.get();
+            final DisplayActivity a = (DisplayActivity) activityRef.get();
             if (a == null || a.contentView == null) return;
 
             a.fetchInProgress = false;

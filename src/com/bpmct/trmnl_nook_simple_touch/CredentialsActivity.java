@@ -157,8 +157,8 @@ public class CredentialsActivity extends Activity {
                 ApiPrefs.saveCredentials(CredentialsActivity.this, id, token);
                 ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, baseUrl);
                 statusView.setText("Saved.");
-                android.content.Intent intent = new android.content.Intent(CredentialsActivity.this, FullscreenActivity.class);
-                intent.putExtra(FullscreenActivity.EXTRA_CLEAR_IMAGE, true);
+                android.content.Intent intent = new android.content.Intent(CredentialsActivity.this, DisplayActivity.class);
+                intent.putExtra(DisplayActivity.EXTRA_CLEAR_IMAGE, true);
                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 finish();
