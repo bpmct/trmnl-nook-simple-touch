@@ -85,8 +85,8 @@ public class FullscreenActivity extends Activity {
 
         setContentView(root);
 
-        // Initial fetch (current screen, no advance)
-        startFetch(false);
+        // Initial fetch (next display)
+        startFetch();
     }
 
     @Override
@@ -109,13 +109,12 @@ public class FullscreenActivity extends Activity {
         }
     }
 
-    private void startFetch(boolean advance) {
+    private void startFetch() {
         if (fetchInProgress) {
             return;
         }
         fetchInProgress = true;
-        String path = advance ? ApiConfig.API_ADVANCE_PATH : ApiConfig.API_CURRENT_SCREEN_PATH;
-        String httpsUrl = ApiConfig.API_BASE_URL + path;
+        String httpsUrl = ApiConfig.API_BASE_URL + ApiConfig.API_DISPLAY_PATH;
         logD("start: " + httpsUrl);
         ApiFetchTask.start(this, httpsUrl, ApiConfig.API_ID, ApiConfig.API_TOKEN);
     }
@@ -124,13 +123,13 @@ public class FullscreenActivity extends Activity {
         if (refreshRunnable == null) {
             refreshRunnable = new Runnable() {
                 public void run() {
-                    startFetch(true);
+                    startFetch();
                     refreshHandler.postDelayed(this, refreshMs);
                 }
             };
         }
         refreshHandler.removeCallbacks(refreshRunnable);
-        logD("next advance in " + (refreshMs / 1000L) + "s");
+        logD("next display in " + (refreshMs / 1000L) + "s");
         refreshHandler.postDelayed(refreshRunnable, refreshMs);
     }
 
@@ -368,6 +367,7 @@ public class FullscreenActivity extends Activity {
                         a.logD("image url: " + ar.imageUrl);
                     }
                     a.logD("displayed image");
+                    a.logD("next display in " + (a.refreshMs / 1000L) + "s");
                     return;
                 }
 
@@ -384,6 +384,7 @@ public class FullscreenActivity extends Activity {
                 }
                 a.logD("response body:\n" + text);
                 a.logD("displayed response");
+                a.logD("next display in " + (a.refreshMs / 1000L) + "s");
                 return;
             }
 
@@ -391,6 +392,7 @@ public class FullscreenActivity extends Activity {
             a.contentView.setText(text);
             a.logD("response body:\n" + text);
             a.logD("displayed response");
+            a.logD("next display in " + (a.refreshMs / 1000L) + "s");
         }
     }
 
@@ -419,8 +421,8 @@ public class FullscreenActivity extends Activity {
         try {
             JSONObject obj = new JSONObject(jsonText);
             int status = obj.optInt("status", -1);
-            // API returns 200 for current_screen, 0 for display
-            if (!(status == 200 || status == 0)) {
+            // API returns 0 for display
+            if (status != 0) {
                 return new ApiResult(jsonText);
             }
             logD("api status: " + status);
