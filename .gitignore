@@ -1,4 +1,4 @@
-1# Eclipse ADT / Ant-era Android project ignores
+# Eclipse ADT / Ant-era Android project ignores
 
 # Build outputs (generated)
 bin/
@@ -25,3 +25,6 @@ src/com/bpmct/trmnl_nook_simple_touch/ApiConfig.java
 # Logs / OS junk
 *.log
 .DS_Store
+
+# Scratch / temp artifacts
+tmp_*.txt
