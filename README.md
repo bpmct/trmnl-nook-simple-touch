@@ -14,6 +14,12 @@ Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-noo
 - Open the included "ES File Explorer" app.
 - `In ES File Explorer: Favorites -> "/" -> "media" -> "My Files".`
 - Tap the APK and install.
+- Connect your device to WiFi
+- Open the app and configure the device info
+
+## Device Settings
+
+In the TRMNL Device settings, set the device type to "Amazon Kindle 7" (800x600). This matches the Nook Simple Touch's display resolution. See [issue #10](https://github.com/bpmct/trmnl-nook-simple-touch/issues/10) for why this workaround is needed and efforts to add a dedicated device type.
 
 ## What this client does
 - On-device config UI for device ID, API key, and API URL (BYOS)
