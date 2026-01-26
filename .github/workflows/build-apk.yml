@@ -1,0 +1,88 @@
+name: build-apk
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SDKMAN and Java 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -s "https://get.sdkman.io" | bash
+          source "${HOME}/.sdkman/bin/sdkman-init.sh"
+          sdk install java 8.0.302-open
+          java -version
+
+      - name: Download Android ADT bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADT_URL="http://dl.google.com/android/adt/adt-bundle-linux-x86_64-20140702.zip"
+          ADT_ZIP="${RUNNER_TEMP}/adt-bundle.zip"
+          curl -L "${ADT_URL}" -o "${ADT_ZIP}"
+          unzip -q "${ADT_ZIP}" -d "${RUNNER_TEMP}"
+
+      - name: Download SpongyCastle JARs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L "https://repo1.maven.org/maven2/com/madgag/spongycastle/core/1.58.0.0/core-1.58.0.0.jar" \
+            -o "libs/spongycastle-core-1.58.0.0.jar"
+          curl -L "https://repo1.maven.org/maven2/com/madgag/spongycastle/prov/1.58.0.0/prov-1.58.0.0.jar" \
+            -o "libs/spongycastle-prov-1.58.0.0.jar"
+          curl -L "https://repo1.maven.org/maven2/com/madgag/spongycastle/bctls-jdk15on/1.58.0.0/bctls-jdk15on-1.58.0.0.jar" \
+            -o "libs/spongycastle-bctls-jdk15on-1.58.0.0.jar"
+
+      - name: Build APK with Ant
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "${HOME}/.sdkman/bin/sdkman-init.sh"
+          export JAVA_HOME="${HOME}/.sdkman/candidates/java/8.0.302-open"
+          export PATH="${JAVA_HOME}/bin:${PATH}"
+
+          ADT_ROOT="${RUNNER_TEMP}/adt-bundle-linux-x86_64-20140702"
+          SDK_DIR="${ADT_ROOT}/sdk"
+          ANT_BIN="${ADT_ROOT}/eclipse/plugins/org.apache.ant_1.8.3.v201301120609/bin/ant"
+
+          echo "sdk.dir=${SDK_DIR}" > local.properties
+          "${ANT_BIN}" -Dbuild.compiler=modern clean debug
+
+      - name: Capture APK path
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH="$(ls -1 bin/*-debug.apk bin/*.apk 2>/dev/null | head -n 1 || true)"
+          if [[ -z "${APK_PATH}" ]]; then
+            echo "APK not found in bin/. Ant build may have failed." >&2
+            exit 1
+          fi
+          echo "path=${APK_PATH}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trmnl-nook-simple-touch-apk
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}
