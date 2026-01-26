@@ -14,7 +14,7 @@ Point the project to the SDK with an untracked `local.properties`:
 
 ## Build targets / properties
 
-- Project target: `target=android-20` (see `project.properties`)
+- Project target: `target=android-20` (compile target required by ADT bundle; runtime API remains 7)
 - Minimum runtime API is still 7 (see `AndroidManifest.xml`)
 
 ## Runtime config storage

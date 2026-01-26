@@ -7,15 +7,12 @@
   project compiles against a newer SDK.
 - Compile target: `target=android-20` (compile SDK used by old tools only)
 - Screen / UX target: 600x800 (fixed resolution)
-- Project type: Eclipse ADT project (`.project`, `.classpath`)
-- Support libs: legacy `android-support-v4.jar` and external `appcompat_v7`
-  library project (`android.library.reference.1=../appcompat_v7`)
+- Project type: ADT/Ant-era project layout (`src/`, `res/`, `build.xml`)
 
 Files that prove this:
 - `AndroidManifest.xml`
 - `project.properties`
-- `.project` / `.classpath`
-- `libs/android-support-v4.jar`
+- `build.xml`
 
 ## Hard constraints (do not modernize)
 
