@@ -69,7 +69,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK_PATH="$(ls -1 bin/*-debug.apk bin/*.apk 2>/dev/null | head -n 1 || true)"
+          APK_PATH="$(ls -1 bin/*-debug.apk 2>/dev/null | grep -v -- "-unaligned.apk" | head -n 1 || true)"
+          if [[ -z "${APK_PATH}" ]]; then
+            APK_PATH="$(ls -1 bin/*-debug-unaligned.apk bin/*.apk 2>/dev/null | head -n 1 || true)"
+          fi
           if [[ -z "${APK_PATH}" ]]; then
             echo "APK not found in bin/. Ant build may have failed." >&2
             exit 1
