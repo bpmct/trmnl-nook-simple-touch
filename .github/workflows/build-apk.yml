@@ -27,6 +27,7 @@ jobs:
           export SDKMAN_DIR="${HOME}/.sdkman"
           export SDKMAN_CANDIDATES_API="https://api.sdkman.io/2"
           export SDKMAN_BROKER_API="https://broker.sdkman.io"
+          export ZSH_VERSION=""
           source "${HOME}/.sdkman/bin/sdkman-init.sh"
           sdk install java 8.0.302-open
           java -version
@@ -58,6 +59,7 @@ jobs:
           export SDKMAN_DIR="${HOME}/.sdkman"
           export SDKMAN_CANDIDATES_API="https://api.sdkman.io/2"
           export SDKMAN_BROKER_API="https://broker.sdkman.io"
+          export ZSH_VERSION=""
           source "${HOME}/.sdkman/bin/sdkman-init.sh"
           export JAVA_HOME="${HOME}/.sdkman/candidates/java/8.0.302-open"
           export PATH="${JAVA_HOME}/bin:${PATH}"
