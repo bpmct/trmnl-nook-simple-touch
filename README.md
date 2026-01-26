@@ -12,6 +12,12 @@ This is a TRMNL client for the Nook Simple Touch (BNRV300). The device usually g
 
 Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-nook-simple-touch/issues/new).
 
+## What about [trmnl-nook](https://github.com/usetrmnl/trmnl-nook)?
+
+The [trmnl-nook](https://github.com/usetrmnl/trmnl-nook) repository is designed for much newer versions of Android (targeting Nook Glowlight 4 and similar modern devices). This repository (`trmnl-nook-simple-touch`) targets the legacy Nook Simple Touch running Android 2.1 (API 7), which requires different tooling and approaches.
+
+I'd love to work with the TRMNL team to combine these repositories, but a lot of the code will remain the same due to the fundamental differences in Android versions and device capabilities. The core TRMNL API integration and display logic share similarities, but the power management, wake/sleep handling, and build tooling differ significantly between Android 2.1 and modern Android versions.
+
 ## Prerequisites
 - Root the device using the [Phoenix Project](https://xdaforums.com/t/nst-g-the-phoenix-project.4673934/). I used "phase 4" (the minimal rooted install for customization). The phases were confusing because you do not need phase 1/2/3 (each is a separate backup).
 - Buy a [TRMNL BYOD license](https://shop.usetrmnl.com/collections/frontpage/products/byod) and grab your SSID + API key from Developer Settings after login (or use your own server).
