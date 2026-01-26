@@ -1,13 +1,11 @@
 # TRMNL client for Nook Simple Touch
 
-This is a TRMNL client for the Nook Simple Touch (BNRV300).
+This is a TRMNL client for the Nook Simple Touch (BNRV300). The device usually goes for around $30 on eBay and has an 800x600 e-ink display.
 
 | | | |
 |:---:|:---:|:---:|
 | ![Configuration](images/configuration.jpg) | ![Display](images/display.jpg) | ![Dialog](images/dialog.jpg) |
 | *Configuration screen* | *Fullscreen view of the display* | *Menu dialog* |
-
-The device usually goes for around $30 on eBay and has an 800x600 e-ink display.
 
 Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-nook-simple-touch/issues/new).
 
