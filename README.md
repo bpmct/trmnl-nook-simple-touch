@@ -12,7 +12,7 @@ Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-noo
 - Download the APK from [GitHub Releases](https://github.com/bpmct/trmnl-nook-simple-touch/releases).
 - Connect the Nook Simple Touch over USB and copy the APK over.
 - Open the included "ES File Explorer" app.
-- In ES File Explorer: `Favorites -> "/" -> "media" -> "My Files"`.
+- `In ES File Explorer: Favorites -> "/" -> "media" -> "My Files".`
 - Tap the APK and install.
 
 ## What this client does
@@ -32,4 +32,4 @@ Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-noo
 See the CI workflow for build details ([`build-apk.yml`](https://github.com/bpmct/trmnl-nook-simple-touch/blob/main/.github/workflows/build-apk.yml)), and the `tools/` adb scripts for build/install workflows. A development guide is coming (https://github.com/bpmct/trmnl-nook-simple-touch/issues/8). In the meantime, the project can be built with surprisingly minimal, self-contained dependencies.
 
 ## Disclaimer
-AI was used to help code this repo. I have a software development background, but did not want to relearn old Java and the Android 2.1 ecosystem. This is an old device and may contain vulnerabilities. Use at your own risk, and if you want to be safer, run it on a guest network.
+AI was used to help code this repo. I have a software development background, but did not want to relearn old Java and the Android 2.1 ecosystem. This is an old device and may contain vulnerabilities. Despite best-effort scanning and reviewing, the device and/or this software may still contain vulnerabilities. Use at your own risk, and if you want to be safer, run it on a guest network.
