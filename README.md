@@ -1,6 +1,6 @@
 # TRMNL client for Nook Simple Touch
 
-This is a TRMNL client for the Nook Simple Touch (BNRV300). I have not tested on the Glowlight BNRV350 yet, but plan to (track it in #6).
+This is a TRMNL client for the Nook Simple Touch (BNRV300). I have not tested on the Glowlight BNRV350 yet, but plan to (track it here: https://github.com/bpmct/trmnl-nook-simple-touch/issues/6).
 
 The device usually goes for around $30 on eBay and has an 800x600 e-ink display.
 
@@ -24,10 +24,11 @@ The device usually goes for around $30 on eBay and has an 800x600 e-ink display.
 - Reports battery voltage and Wi-Fi signal strength
 
 ## Roadmap
-- [ ] Use device deep sleep to save battery (#7)
+- [ ] Use device deep sleep to save battery (https://github.com/bpmct/trmnl-nook-simple-touch/issues/7)
+- [ ] Document battery testing on new and old devices (https://github.com/bpmct/trmnl-nook-simple-touch/issues/9)
 
 ## Development
-See the CI workflow for build details ([`build-apk.yml`](https://github.com/bpmct/trmnl-nook-simple-touch/blob/main/.github/workflows/build-apk.yml)), and the `tools/` adb scripts for build/install workflows. A development guide is coming in #8. In the meantime, the project can be built with surprisingly minimal, self-contained dependencies.
+See the CI workflow for build details ([`build-apk.yml`](https://github.com/bpmct/trmnl-nook-simple-touch/blob/main/.github/workflows/build-apk.yml)), and the `tools/` adb scripts for build/install workflows. A development guide is coming (https://github.com/bpmct/trmnl-nook-simple-touch/issues/8). In the meantime, the project can be built with surprisingly minimal, self-contained dependencies.
 
 ## Disclaimer
 AI was used to help code this repo. I have a software development background, but did not want to relearn old Java and the Android 2.1 ecosystem. This is an old device and may contain vulnerabilities. Use at your own risk, and if you want to be safer, run it on a guest network.
