@@ -6,14 +6,21 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 
 public class SettingsActivity extends Activity {
     private static final int APP_ROTATION_DEGREES = 90;
     private TextView statusView;
+    private CheckBox allowSleepCheck;
+    private CheckBox writeScreensaverCheck;
+    private LinearLayout screensaverPathRow;
+    private EditText screensaverPathEdit;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -58,6 +65,56 @@ public class SettingsActivity extends Activity {
         statusParams.topMargin = 6;
         inner.addView(statusView, statusParams);
 
+        TextView displayLabel = new TextView(this);
+        displayLabel.setText("Display / power");
+        displayLabel.setTextSize(14);
+        displayLabel.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams displayLabelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        displayLabelParams.topMargin = 20;
+        inner.addView(displayLabel, displayLabelParams);
+
+        allowSleepCheck = new CheckBox(this);
+        allowSleepCheck.setText("Allow device to sleep between updates");
+        allowSleepCheck.setTextColor(0xFF000000);
+        allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
+        inner.addView(allowSleepCheck, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        writeScreensaverCheck = new CheckBox(this);
+        writeScreensaverCheck.setText("Write current image to screensaver file");
+        writeScreensaverCheck.setTextColor(0xFF000000);
+        writeScreensaverCheck.setChecked(ApiPrefs.isWriteScreensaver(this));
+        writeScreensaverCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton b, boolean checked) {
+                if (screensaverPathRow != null) {
+                    screensaverPathRow.setVisibility(checked ? View.VISIBLE : View.GONE);
+                }
+            }
+        });
+        inner.addView(writeScreensaverCheck, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        screensaverPathRow = new LinearLayout(this);
+        screensaverPathRow.setOrientation(LinearLayout.HORIZONTAL);
+        TextView pathLabel = new TextView(this);
+        pathLabel.setText("Path: ");
+        pathLabel.setTextColor(0xFF000000);
+        screensaverPathRow.addView(pathLabel);
+        screensaverPathEdit = new EditText(this);
+        screensaverPathEdit.setText(ApiPrefs.getScreensaverPath(this));
+        screensaverPathEdit.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        screensaverPathEdit.setMinWidth(200);
+        screensaverPathRow.addView(screensaverPathEdit, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        screensaverPathRow.setVisibility(ApiPrefs.isWriteScreensaver(this) ? View.VISIBLE : View.GONE);
+        inner.addView(screensaverPathRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
@@ -88,6 +145,7 @@ public class SettingsActivity extends Activity {
 
         backButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                saveDisplayPrefs();
                 finish();
             }
         });
@@ -111,5 +169,22 @@ public class SettingsActivity extends Activity {
         if (statusView != null) {
             statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
         }
+        if (allowSleepCheck != null) allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
+        if (writeScreensaverCheck != null) writeScreensaverCheck.setChecked(ApiPrefs.isWriteScreensaver(this));
+        if (screensaverPathEdit != null) screensaverPathEdit.setText(ApiPrefs.getScreensaverPath(this));
+        if (screensaverPathRow != null) {
+            screensaverPathRow.setVisibility(ApiPrefs.isWriteScreensaver(this) ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    protected void onPause() {
+        saveDisplayPrefs();
+        super.onPause();
+    }
+
+    private void saveDisplayPrefs() {
+        if (allowSleepCheck != null) ApiPrefs.setAllowSleep(this, allowSleepCheck.isChecked());
+        if (writeScreensaverCheck != null) ApiPrefs.setWriteScreensaver(this, writeScreensaverCheck.isChecked());
+        if (screensaverPathEdit != null) ApiPrefs.setScreensaverPath(this, screensaverPathEdit.getText().toString());
     }
 }

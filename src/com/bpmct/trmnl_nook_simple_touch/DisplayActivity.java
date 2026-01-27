@@ -1,17 +1,25 @@
 package com.bpmct.trmnl_nook_simple_touch;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.PowerManager;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -31,14 +39,25 @@ import java.net.URL;
 import java.net.URLDecoder;
 
 import org.json.JSONObject;
+
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.Calendar;
+
 public class DisplayActivity extends Activity {
     public static final String EXTRA_CLEAR_IMAGE = "clear_image";
     private static final String TAG = "TRMNLAPI";
     private static final long DEFAULT_REFRESH_MS = 15 * 60 * 1000;
     private static final String API_DISPLAY_PATH = "/display";
+    private static final String ALARM_REFRESH_ACTION = "com.bpmct.trmnl_nook_simple_touch.ALARM_REFRESH_ACTION";
+    /** When true, skip API and show generic on screen (for testing). When false, foreground = API image, screensaver file = generic. */
+    private static final boolean USE_GENERIC_IMAGE = false;
+    /** Delay after showing API image before writing screensaver and going to sleep (show picture, then screensaver, then sleep full interval). */
+    private static final long SCREENSAVER_DELAY_MS = 5 * 1000;
     private TextView contentView;
     private TextView logView;
     private ImageView imageView;
@@ -58,6 +77,13 @@ public class DisplayActivity extends Activity {
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_CHARS = 6000;
     private static final int APP_ROTATION_DEGREES = 90;
+
+    private AlarmManager alarmManager;
+    private PendingIntent alarmPendingIntent;
+    private BroadcastReceiver alarmReceiver;
+    private Runnable pendingSleepRunnable;
+    private Runnable pendingWifiWarmupRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,7 +92,6 @@ public class DisplayActivity extends Activity {
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         FrameLayout root = new FrameLayout(this);
         root.setLayoutParams(new FrameLayout.LayoutParams(
@@ -178,7 +203,11 @@ public class DisplayActivity extends Activity {
             public void onClick(View v) {
                 logD("menu: next tapped");
                 hideMenu();
-                startFetch();
+                if (USE_GENERIC_IMAGE) {
+                    showGenericImageAndSleep();
+                } else {
+                    startFetch();
+                }
             }
         });
         nextButton.setOnTouchListener(new View.OnTouchListener() {
@@ -235,28 +264,109 @@ public class DisplayActivity extends Activity {
 
         setContentView(appRotateLayout);
 
-        // Initial fetch (next display)
-        if (ensureCredentials()) {
-            startFetch();
+        // Alarm + receiver for wake-from-sleep refresh (Electric-Sign pattern).
+        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmPendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ALARM_REFRESH_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
+        alarmReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                DisplayActivity a = DisplayActivity.this;
+                if (ApiPrefs.isAllowSleep(a)) {
+                    setKeepScreenAwake(true);
+                }
+                if (USE_GENERIC_IMAGE) {
+                    showGenericImageAndSleep();
+                    return;
+                }
+                // Electric-Sign-style: if we slept with WiFi off, turn it on and wait before fetching
+                WifiManager wifi = (WifiManager) a.getSystemService(Context.WIFI_SERVICE);
+                if (ApiPrefs.isAllowSleep(a) && wifi != null && !wifi.isWifiEnabled()
+                        && !isConnectedToNetwork(a)) {
+                    wifi.setWifiEnabled(true);
+                    scheduleReload(45 * 1000);
+                    return;
+                }
+                startFetch();
+            }
+        };
+        registerReceiver(alarmReceiver, new IntentFilter(ALARM_REFRESH_ACTION));
+
+        setKeepScreenAwake(true);
+
+        boolean wifiJustOn = ensureWifiOnWhenForeground();
+
+        // Initial display: generic image (no API) or fetch from API
+        if (USE_GENERIC_IMAGE) {
+            showGenericImageAndSleep();
+        } else if (ensureCredentials()) {
+            if (wifiJustOn) {
+                scheduleFetchAfterWifiWarmup();
+            } else {
+                startFetch();
+            }
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Re-apply fullscreen flags in case system UI appeared
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setKeepScreenAwake(true);
+
+        boolean wifiJustOn = ensureWifiOnWhenForeground();
 
         applyIntentState(getIntent());
-        if (ensureCredentials()) {
+        if (USE_GENERIC_IMAGE) {
+            showGenericImageAndSleep();
+        } else if (ensureCredentials()) {
             if (!fetchInProgress) {
-                startFetch();
+                if (wifiJustOn) {
+                    scheduleFetchAfterWifiWarmup();
+                } else {
+                    startFetch();
+                }
             }
             scheduleRefresh();
         }
+    }
+
+    /** When we just turned WiFi on, delay fetch so connection can establish (Electric-Sign uses 45s). */
+    private void scheduleFetchAfterWifiWarmup() {
+        if (pendingWifiWarmupRunnable != null) {
+            refreshHandler.removeCallbacks(pendingWifiWarmupRunnable);
+        }
+        pendingWifiWarmupRunnable = new Runnable() {
+            @Override
+            public void run() {
+                pendingWifiWarmupRunnable = null;
+                startFetch();
+            }
+        };
+        refreshHandler.postDelayed(pendingWifiWarmupRunnable, WIFI_WARMUP_MS);
+        logD("fetch in " + (WIFI_WARMUP_MS / 1000L) + "s (wifi warming up)");
+    }
+
+    /** WiFi is only off while sleeping; when app is in foreground, ensure it's on so fetch works.
+     * @return true if WiFi was off and we turned it on (caller should delay fetch to allow connection). */
+    private boolean ensureWifiOnWhenForeground() {
+        if (!ApiPrefs.isAllowSleep(this)) return false;
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        if (wifi != null && !wifi.isWifiEnabled()) {
+            wifi.setWifiEnabled(true);
+            logD("wifi on (app in foreground), wait ~45s for connection");
+            return true;
+        }
+        return false;
+    }
+
+    private static final long WIFI_WARMUP_MS = 45 * 1000;
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        ensureWifiOnWhenForeground();
     }
 
     protected void onNewIntent(Intent intent) {
@@ -280,6 +390,163 @@ public class DisplayActivity extends Activity {
         super.onPause();
         if (refreshRunnable != null) {
             refreshHandler.removeCallbacks(refreshRunnable);
+        }
+        if (pendingSleepRunnable != null) {
+            refreshHandler.removeCallbacks(pendingSleepRunnable);
+            pendingSleepRunnable = null;
+        }
+        if (pendingWifiWarmupRunnable != null) {
+            refreshHandler.removeCallbacks(pendingWifiWarmupRunnable);
+            pendingWifiWarmupRunnable = null;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        try {
+            if (alarmReceiver != null) {
+                unregisterReceiver(alarmReceiver);
+                alarmReceiver = null;
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "onDestroy unregisterReceiver: " + t);
+        }
+        super.onDestroy();
+    }
+
+    /** Electric-Sign-style: keep screen on and show when locked, or allow sleep.
+     * When awake=false we clear FLAG_KEEP_SCREEN_ON so the device can blank and show the NOOK screensaver
+     * (the image we write to ApiPrefs.getScreensaverPath()). */
+    private void setKeepScreenAwake(boolean awake) {
+        int flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+        Window win = getWindow();
+        if (awake) {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                pm.userActivity(SystemClock.uptimeMillis(), false);
+            }
+            win.addFlags(flags);
+        } else {
+            win.clearFlags(flags);
+        }
+    }
+
+    /** Schedule alarm to wake and trigger next fetch at (now + millis). */
+    private long scheduleReload(long millis) {
+        if (alarmManager == null || alarmPendingIntent == null) return 0;
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(System.currentTimeMillis() + millis);
+        long wakeTime = cal.getTimeInMillis();
+        alarmManager.set(AlarmManager.RTC_WAKEUP, wakeTime, alarmPendingIntent);
+        return wakeTime;
+    }
+
+    /** After SCREENSAVER_DELAY_MS (5s), put device in sleep-ready state (clear keep-screen-on, WiFi off, alarm set).
+     * We do NOT show generic in-app — the API image stays on screen. If "write screensaver" is on we write
+     * generic to the NOOK screensaver path so the device can show it when it actually sleeps (e.g. after 2m). */
+    private void scheduleScreensaverThenSleep() {
+        if (pendingSleepRunnable != null) {
+            refreshHandler.removeCallbacks(pendingSleepRunnable);
+        }
+        pendingSleepRunnable = new Runnable() {
+            @Override
+            public void run() {
+                pendingSleepRunnable = null;
+                if (!ApiPrefs.isAllowSleep(DisplayActivity.this)) return;
+                if (ApiPrefs.isWriteScreensaver(DisplayActivity.this)) {
+                    writeGenericScreensaver();
+                }
+                long sleepMs = refreshMs - SCREENSAVER_DELAY_MS;
+                if (sleepMs < 0) sleepMs = 0;
+                scheduleReload(sleepMs);
+                setKeepScreenAwake(false);
+                WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                if (wifi != null) wifi.setWifiEnabled(false);
+                logD("sleep-ready: alarm in " + (sleepMs / 1000L) + "s (NOOK may blank after its idle, e.g. 2m)");
+            }
+        };
+        refreshHandler.postDelayed(pendingSleepRunnable, SCREENSAVER_DELAY_MS);
+        logD("sleep-ready in " + (SCREENSAVER_DELAY_MS / 1000L) + "s (API image stays; NOOK shows screensaver when it sleeps)");
+    }
+
+    /** Show bundled generic image (res/drawable-mdpi/generic_display.jpg) and, if allow-sleep, write it as screensaver and go to sleep. */
+    private void showGenericImageAndSleep() {
+        Bitmap bitmap = null;
+        try {
+            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.generic_display);
+        } catch (Throwable t) {
+            logW("generic_display decode failed: " + t);
+        }
+        if (bitmap == null) {
+            logW("generic_display not found or failed to load");
+            return;
+        }
+        imageView.setImageBitmap(bitmap);
+        imageView.setVisibility(View.VISIBLE);
+        if (contentScroll != null) contentScroll.setVisibility(View.GONE);
+        if (logView != null) logView.setVisibility(View.GONE);
+        forceFullRefresh();
+        logD("displayed generic image");
+        logD("next display in " + (refreshMs / 1000L) + "s");
+        if (ApiPrefs.isAllowSleep(this)) {
+            if (ApiPrefs.isWriteScreensaver(this)) {
+                writeScreenshotToScreensaver(bitmap);
+            }
+            scheduleReload(refreshMs);
+            setKeepScreenAwake(false);
+            WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            if (wifi != null) wifi.setWifiEnabled(false);
+            logD("sleep allowed: alarm set, screen off, wifi off");
+        } else {
+            scheduleRefresh();
+        }
+    }
+
+    private static boolean isConnectedToNetwork(Context context) {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        NetworkInfo wifi = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        if (wifi != null && wifi.isConnected()) return true;
+        NetworkInfo mobile = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+        return mobile != null && mobile.isConnected();
+    }
+
+    /** Write bundled generic_display.jpg to screensaver path so NOOK shows it (not the live image) while asleep. */
+    private void writeGenericScreensaver() {
+        Bitmap b = null;
+        try {
+            b = BitmapFactory.decodeResource(getResources(), R.drawable.generic_display);
+        } catch (Throwable t) {
+            logW("generic_display for screensaver: " + t);
+        }
+        if (b != null) writeScreenshotToScreensaver(b);
+    }
+
+    /** Write given bitmap to screensaver path so NOOK can show it while asleep. */
+    private void writeScreenshotToScreensaver(Bitmap bitmap) {
+        if (bitmap == null) return;
+        if (!ApiPrefs.isWriteScreensaver(this)) return;
+        String path = ApiPrefs.getScreensaverPath(this);
+        if (path == null || path.length() == 0) return;
+        String dirPath = path;
+        int lastSlash = dirPath.lastIndexOf('/');
+        if (lastSlash >= 0) dirPath = dirPath.substring(0, lastSlash);
+        try {
+            new File(dirPath).mkdirs();
+        } catch (Throwable t) {
+            logW("screensaver mkdir: " + t);
+        }
+        try {
+            FileOutputStream out = new FileOutputStream(new File(path));
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            out.flush();
+            out.close();
+            logD("screensaver written: " + path);
+        } catch (Throwable t) {
+            logW("screensaver write failed: " + t);
         }
     }
 
@@ -330,6 +597,7 @@ public class DisplayActivity extends Activity {
     }
 
     private void startFetch() {
+        ensureWifiOnWhenForeground();
         if (!ensureCredentials()) {
             return;
         }
@@ -343,6 +611,9 @@ public class DisplayActivity extends Activity {
     }
 
     private void scheduleRefresh() {
+        if (ApiPrefs.isAllowSleep(this)) {
+            return;
+        }
         if (refreshRunnable == null) {
             refreshRunnable = new Runnable() {
                 public void run() {
@@ -704,6 +975,11 @@ public class DisplayActivity extends Activity {
                     a.forceFullRefresh();
                     a.logD("displayed image");
                     a.logD("next display in " + (a.refreshMs / 1000L) + "s");
+                    if (ApiPrefs.isAllowSleep(a)) {
+                        a.scheduleScreensaverThenSleep();
+                    } else {
+                        a.scheduleRefresh();
+                    }
                     float v = getBatteryVoltage(a);
                     if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
                     int rssi = getWifiRssi(a);
@@ -735,8 +1011,11 @@ public class DisplayActivity extends Activity {
 
             String text = result != null ? result.toString() : "Error: null result";
             a.contentView.setText(text);
-            a.logD("response body:\n" + text);
-            a.logD("displayed response");
+            if (a.contentScroll != null) a.contentScroll.setVisibility(View.VISIBLE);
+            if (a.imageView != null) a.imageView.setVisibility(View.GONE);
+            if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
+            a.forceFullRefresh();
+            a.logD("fetch error: " + text);
             a.logD("next display in " + (a.refreshMs / 1000L) + "s");
             float v = getBatteryVoltage(a);
             if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
