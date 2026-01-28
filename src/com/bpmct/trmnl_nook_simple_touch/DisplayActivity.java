@@ -1279,13 +1279,21 @@ public class DisplayActivity extends Activity {
             }
 
             Hashtable headers = buildImageHeaders();
-            byte[] imageBytes = BouncyCastleHttpClient.getHttpsBytes(
-                    getApplicationContext(),
-                    imageUrl,
-                    headers);
+            byte[] imageBytes = null;
+            for (int attempt = 1; attempt <= 2; attempt++) {
+                if (attempt > 1) {
+                    logW("Image fetch attempt " + (attempt-1) + " failed - retrying in 3s");
+                    try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+                }
+                imageBytes = BouncyCastleHttpClient.getHttpsBytes(
+                        getApplicationContext(),
+                        imageUrl,
+                        headers);
+                if (imageBytes != null && imageBytes.length > 0) break;
+            }
             if (imageBytes == null || imageBytes.length == 0) {
-                logW("image fetch failed for url: " + imageUrl);
-                return new ApiResult(jsonText);
+                logW("image fetch failed after retries for url: " + imageUrl);
+                return new ApiResult("Error: Failed to download image from " + imageUrl);
             }
             logD("image bytes: " + imageBytes.length);
 
