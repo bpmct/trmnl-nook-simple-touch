@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e
+
+# Symlink untracked files from main repo for worktrees
+MAIN_REPO="/home/benpotter/workspace/trmnl-nook-simple-touch"
+
+if [ -f "$MAIN_REPO/local.properties" ]; then
+    ln -sf "$MAIN_REPO/local.properties" local.properties
+    echo "Linked local.properties"
+fi
+
+for jar in "$MAIN_REPO"/libs/*.jar; do
+    if [ -f "$jar" ]; then
+        ln -sf "$jar" libs/
+        echo "Linked $(basename "$jar")"
+    fi
+done
+
+echo "Worktree setup complete"

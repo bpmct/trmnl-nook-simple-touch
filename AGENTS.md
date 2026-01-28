@@ -8,11 +8,6 @@ Current notes:
 - Main entry activity: `DisplayActivity`.
 - API credentials/base URL live in app settings (`ApiPrefs`).
 
-## Worktree Setup
-
-After creating a new worktree, run `./tools/setup-worktree.sh` to symlink
-`local.properties` and the SpongyCastle JARs from the main repo.
-
 ## Index
 
 - `AGENTS/platform-constraints.md`
