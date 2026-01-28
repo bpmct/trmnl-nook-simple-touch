@@ -982,6 +982,8 @@ public class DisplayActivity extends Activity {
             if (BouncyCastleHttpClient.isAvailable()) {
                 if (a != null) a.logD("trying BouncyCastle TLS 1.2");
                 Hashtable headers = buildApiHeaders(apiId, apiToken, batteryVoltage, rssi);
+                
+                // First attempt
                 String bcResult = BouncyCastleHttpClient.getHttps(
                         a != null ? a.getApplicationContext() : null,
                         httpsUrl,
@@ -996,7 +998,32 @@ public class DisplayActivity extends Activity {
                     }
                     return new ApiResult(bcResult);
                 }
-                if (a != null) a.logW("BouncyCastle TLS failed: " + bcResult);
+                
+                // First attempt failed - back off 3 seconds and retry once
+                if (a != null) a.logW("First attempt failed: " + bcResult + " - retrying in 3s");
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignored) {}
+                
+                // Retry attempt
+                if (a != null) a.logD("Retrying fetch...");
+                bcResult = BouncyCastleHttpClient.getHttps(
+                        a != null ? a.getApplicationContext() : null,
+                        httpsUrl,
+                        headers);
+                if (bcResult != null && !bcResult.startsWith("Error:")) {
+                    ApiResult parsed = null;
+                    if (a != null) {
+                        parsed = a.parseResponseAndMaybeFetchImage(bcResult);
+                    }
+                    if (parsed != null) {
+                        return parsed;
+                    }
+                    return new ApiResult(bcResult);
+                }
+                
+                // Both attempts failed - return full error for display
+                if (a != null) a.logW("Retry also failed: " + bcResult);
                 return bcResult;
             }
 
@@ -1162,14 +1189,12 @@ public class DisplayActivity extends Activity {
             }
 
             String text = result != null ? result.toString() : "Error: null result";
-            if (fromMenu) {
-                a.showMenuStatus(text.length() > 80 ? text.substring(0, 77) + "…" : text, true);
-            } else {
-                a.contentView.setText(text);
-                if (a.contentScroll != null) a.contentScroll.setVisibility(View.VISIBLE);
-                if (a.imageView != null) a.imageView.setVisibility(View.GONE);
-                if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
-            }
+            // Show error full screen (hide menu, show in content area)
+            a.hideMenu();
+            a.contentView.setText(text);
+            if (a.contentScroll != null) a.contentScroll.setVisibility(View.VISIBLE);
+            if (a.imageView != null) a.imageView.setVisibility(View.GONE);
+            if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
             a.forceFullRefresh();
             a.logD("fetch error: " + text);
             a.logD("next display in " + (a.refreshMs / 1000L) + "s");
