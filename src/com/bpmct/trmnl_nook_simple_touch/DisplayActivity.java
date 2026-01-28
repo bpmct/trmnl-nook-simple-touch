@@ -1213,10 +1213,11 @@ public class DisplayActivity extends Activity {
             }
 
             String text = result != null ? result.toString() : "Error: null result";
-            // Show error fullscreen in log view (like boot screen but without header)
+            // Show error with boot header + logs
             a.hideMenu();
-            a.logW("FETCH ERROR: " + text);
-            if (a.bootLayout != null) a.bootLayout.setVisibility(View.GONE);
+            a.logW("ERROR: " + text);
+            a.setBootStatus("Error - tap to retry");
+            if (a.bootLayout != null) a.bootLayout.setVisibility(View.VISIBLE);
             if (a.imageView != null) a.imageView.setVisibility(View.GONE);
             if (a.contentScroll != null) a.contentScroll.setVisibility(View.GONE);
             if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
