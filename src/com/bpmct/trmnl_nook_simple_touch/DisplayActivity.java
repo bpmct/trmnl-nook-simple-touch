@@ -119,43 +119,22 @@ public class DisplayActivity extends Activity {
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
 
-        // Boot screen header: icon + title + status (compact, at top)
+        // Boot header: [icon] TRMNL / status
         bootLayout = new LinearLayout(this);
         bootLayout.setOrientation(LinearLayout.HORIZONTAL);
-        bootLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        bootLayout.setGravity(Gravity.CENTER_VERTICAL);
         bootLayout.setPadding(20, 20, 20, 10);
-        bootLayout.setBackgroundColor(0xFFFFFFFF);
         
         ImageView bootIcon = new ImageView(this);
         bootIcon.setImageResource(R.drawable.ic_launcher);
-        bootIcon.setScaleType(ImageView.ScaleType.CENTER);
-        bootLayout.addView(bootIcon, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        
-        LinearLayout bootTextLayout = new LinearLayout(this);
-        bootTextLayout.setOrientation(LinearLayout.VERTICAL);
-        bootTextLayout.setPadding(15, 0, 0, 0);
-        
-        TextView bootTitle = new TextView(this);
-        bootTitle.setText("TRMNL");
-        bootTitle.setTextColor(0xFF000000);
-        bootTitle.setTextSize(22);
-        bootTextLayout.addView(bootTitle, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        bootLayout.addView(bootIcon);
         
         bootStatus = new TextView(this);
-        bootStatus.setText("Starting...");
-        bootStatus.setTextColor(0xFF666666);
-        bootStatus.setTextSize(12);
-        bootTextLayout.addView(bootStatus, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        
-        bootLayout.addView(bootTextLayout, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        bootStatus.setText("TRMNL  Starting...");
+        bootStatus.setTextColor(0xFF000000);
+        bootStatus.setTextSize(16);
+        bootStatus.setPadding(15, 0, 0, 0);
+        bootLayout.addView(bootStatus);
         
         contentLayout.addView(bootLayout, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
@@ -831,22 +810,17 @@ public class DisplayActivity extends Activity {
         }
     }
     
-    /** Update boot screen status text */
-    private void setBootStatus(final String status) {
-        if (bootStatus != null && !bootComplete) {
-            refreshHandler.post(new Runnable() {
-                public void run() {
-                    if (bootStatus != null) bootStatus.setText(status);
-                }
-            });
-        }
-    }
-    
     /** Hide boot screen and show normal content */
     private void hideBootScreen() {
         if (bootComplete) return;
         bootComplete = true;
         if (bootLayout != null) bootLayout.setVisibility(View.GONE);
+    }
+    
+    private void setBootStatus(String status) {
+        if (bootStatus != null && !bootComplete) {
+            bootStatus.setText("TRMNL  " + status);
+        }
     }
 
     private void toggleMenu() {
@@ -995,25 +969,18 @@ public class DisplayActivity extends Activity {
 
     private void logD(final String msg) {
         Log.d(TAG, msg);
-        // Show on screen during boot
-        if (!bootComplete) {
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    appendLogLine(msg);
-                }
-            });
-        }
+        if (!bootComplete) logToScreen(msg);
     }
 
     private void logW(final String msg) {
         Log.w(TAG, msg);
-        if (!bootComplete) {
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    appendLogLine("W " + msg);
-                }
-            });
-        }
+        if (!bootComplete) logToScreen("W " + msg);
+    }
+    
+    private void logToScreen(final String msg) {
+        runOnUiThread(new Runnable() {
+            public void run() { appendLogLine(msg); }
+        });
     }
 
     private void logE(final String msg, final Throwable t) {
@@ -1062,47 +1029,24 @@ public class DisplayActivity extends Activity {
                 if (a != null) a.logD("trying BouncyCastle TLS 1.2");
                 Hashtable headers = buildApiHeaders(apiId, apiToken, batteryVoltage, rssi);
                 
-                // First attempt
-                String bcResult = BouncyCastleHttpClient.getHttps(
-                        a != null ? a.getApplicationContext() : null,
-                        httpsUrl,
-                        headers);
-                if (bcResult != null && !bcResult.startsWith("Error:")) {
-                    ApiResult parsed = null;
-                    if (a != null) {
-                        parsed = a.parseResponseAndMaybeFetchImage(bcResult);
+                // Try up to 2 times with 3s backoff
+                String bcResult = null;
+                for (int attempt = 1; attempt <= 2; attempt++) {
+                    if (attempt > 1) {
+                        if (a != null) a.logW("Attempt " + (attempt-1) + " failed: " + bcResult + " - retrying in 3s");
+                        try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+                        if (a != null) a.logD("Retrying fetch...");
                     }
-                    if (parsed != null) {
-                        return parsed;
+                    bcResult = BouncyCastleHttpClient.getHttps(
+                            a != null ? a.getApplicationContext() : null,
+                            httpsUrl,
+                            headers);
+                    if (bcResult != null && !bcResult.startsWith("Error:")) {
+                        ApiResult parsed = (a != null) ? a.parseResponseAndMaybeFetchImage(bcResult) : null;
+                        return (parsed != null) ? parsed : new ApiResult(bcResult);
                     }
-                    return new ApiResult(bcResult);
                 }
-                
-                // First attempt failed - back off 3 seconds and retry once
-                if (a != null) a.logW("First attempt failed: " + bcResult + " - retrying in 3s");
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ignored) {}
-                
-                // Retry attempt
-                if (a != null) a.logD("Retrying fetch...");
-                bcResult = BouncyCastleHttpClient.getHttps(
-                        a != null ? a.getApplicationContext() : null,
-                        httpsUrl,
-                        headers);
-                if (bcResult != null && !bcResult.startsWith("Error:")) {
-                    ApiResult parsed = null;
-                    if (a != null) {
-                        parsed = a.parseResponseAndMaybeFetchImage(bcResult);
-                    }
-                    if (parsed != null) {
-                        return parsed;
-                    }
-                    return new ApiResult(bcResult);
-                }
-                
-                // Both attempts failed - return full error for display
-                if (a != null) a.logW("Retry also failed: " + bcResult);
+                if (a != null) a.logW("All attempts failed: " + bcResult);
                 return bcResult;
             }
 
