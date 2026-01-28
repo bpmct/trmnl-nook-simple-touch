@@ -79,6 +79,8 @@ public class DisplayActivity extends Activity {
     private volatile boolean fetchInProgress = false;
     private volatile boolean fetchStartedFromMenu = false;
     private volatile long refreshMs = DEFAULT_REFRESH_MS;
+    /** Last displayed API image; used for screensaver file when allow-sleep + write-screensaver. */
+    private Bitmap lastDisplayedImage;
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_CHARS = 6000;
     private static final int APP_ROTATION_DEGREES = 90;
@@ -369,10 +371,9 @@ public class DisplayActivity extends Activity {
             startFetch();
             return;
         }
+        // Only show Connecting in the dialog when user tapped Next. Resume/alarm wake: keep previous display, wait in background.
         if (menuVisible) {
             showMenuStatus("Connecting…", false);
-        } else {
-            showWarmupLoadingMessage();
         }
         ensureWifiOnWhenForeground();
         final DisplayActivity a = this;
@@ -544,7 +545,7 @@ public class DisplayActivity extends Activity {
 
     /** After SCREENSAVER_DELAY_MS (5s), put device in sleep-ready state (clear keep-screen-on, WiFi off, alarm set).
      * We do NOT show generic in-app — the API image stays on screen. If "write screensaver" is on we write
-     * generic to the NOOK screensaver path so the device can show it when it actually sleeps (e.g. after 2m). */
+     * the displayed API image to the NOOK screensaver path so the device shows it when it sleeps (e.g. after 2m). */
     private void scheduleScreensaverThenSleep() {
         if (pendingSleepRunnable != null) {
             refreshHandler.removeCallbacks(pendingSleepRunnable);
@@ -555,7 +556,11 @@ public class DisplayActivity extends Activity {
                 pendingSleepRunnable = null;
                 if (!ApiPrefs.isAllowSleep(DisplayActivity.this)) return;
                 if (ApiPrefs.isWriteScreensaver(DisplayActivity.this)) {
-                    writeGenericScreensaver();
+                    if (lastDisplayedImage != null) {
+                        writeScreenshotToScreensaver(lastDisplayedImage);
+                    } else {
+                        writeGenericScreensaver();
+                    }
                 }
                 long sleepMs = refreshMs - SCREENSAVER_DELAY_MS;
                 if (sleepMs < 0) sleepMs = 0;
@@ -614,7 +619,7 @@ public class DisplayActivity extends Activity {
         return mobile != null && mobile.isConnected();
     }
 
-    /** Write bundled generic_display.jpg to screensaver path so NOOK shows it (not the live image) while asleep. */
+    /** Write bundled generic_display.jpg to screensaver path. Used as fallback when no API image has been displayed yet. */
     private void writeGenericScreensaver() {
         Bitmap b = null;
         try {
@@ -715,10 +720,9 @@ public class DisplayActivity extends Activity {
         fetchInProgress = true;
         fetchStartedFromMenu = menuVisible;
         appendLogLine("Fetching...");
+        // Only show Loading in the dialog when user tapped Next. Resume/alarm wake: keep previous display, fetch in background.
         if (menuVisible) {
             showMenuStatus("Loading...", false);
-        } else {
-            showLoadingMessage();
         }
         String httpsUrl = ApiPrefs.getApiBaseUrl(this) + API_DISPLAY_PATH;
         logD("start: " + httpsUrl);
@@ -1110,6 +1114,7 @@ public class DisplayActivity extends Activity {
                         a.logD("response body:\n" + ar.rawText);
                     }
                     a.imageView.setImageBitmap(ar.bitmap);
+                    a.lastDisplayedImage = ar.bitmap;
                     a.imageView.setVisibility(View.VISIBLE);
                     if (a.contentScroll != null) {
                         a.contentScroll.setVisibility(View.GONE);
