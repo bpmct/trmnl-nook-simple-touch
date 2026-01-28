@@ -9,6 +9,8 @@ public class ApiPrefs {
     private static final String KEY_API_TOKEN = "api_token";
     private static final String KEY_API_BASE_URL = "api_base_url";
     private static final String DEFAULT_API_BASE_URL = "https://usetrmnl.com/api";
+    private static final String KEY_ALLOW_SLEEP = "allow_sleep";
+    private static final String SCREENSAVER_PATH = "/media/screensavers/TRMNL/display.png";
 
     public static boolean hasCredentials(Context context) {
         return getApiId(context) != null && getApiToken(context) != null;
@@ -83,5 +85,21 @@ public class ApiPrefs {
             value = value + "/api";
         }
         return value;
+    }
+
+    /** Whether the device may sleep between display updates (Electric-Sign-style). Default true. */
+    public static boolean isAllowSleep(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_ALLOW_SLEEP, true);
+    }
+
+    public static void setAllowSleep(Context context, boolean allow) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_ALLOW_SLEEP, allow).commit();
+    }
+
+    /** File path for screensaver image (hardcoded for NOOK). */
+    public static String getScreensaverPath() {
+        return SCREENSAVER_PATH;
     }
 }

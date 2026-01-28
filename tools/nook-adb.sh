@@ -181,8 +181,17 @@ adb_cmd() {
   fi
 }
 
+# host:port for -s and disconnect. For "adb connect", ADT adb 1.0.31 appends :5555 itself,
+# so passing host:5555 becomes host:5555:5555. Pass host only when port is 5555.
+device_target() { echo "${DEVICE_IP%%:*}:${DEVICE_PORT%%:*}"; }
+device_connect_arg() {
+  local p="${DEVICE_PORT%%:*}"
+  if [[ "${p:-5555}" = "5555" ]]; then echo "${DEVICE_IP%%:*}"; else echo "${DEVICE_IP%%:*}:${p}"; fi
+}
+
 adb_target() {
-  local serial="${DEVICE_IP}:${DEVICE_PORT}"
+  local serial
+  serial="$(device_target)"
   adb_cmd -s "${serial}" "$@"
 }
 
@@ -191,14 +200,14 @@ connect_device() {
   [[ -n "${DEVICE_IP}" ]] || die "no device IP provided"
 
   adb_cmd start-server >/dev/null
-  adb_cmd connect "${DEVICE_IP}:${DEVICE_PORT}"
+  adb_cmd connect "$(device_connect_arg)"
   adb_cmd devices
 }
 
 disconnect_device() {
   [[ -n "${DEVICE_IP}" ]] || prompt_select_ip "${DEVICE_PORT}"
   [[ -n "${DEVICE_IP}" ]] || die "no device IP provided"
-  adb_cmd disconnect "${DEVICE_IP}:${DEVICE_PORT}" || true
+  adb_cmd disconnect "$(device_target)" || true
   adb_cmd devices
 }
 
@@ -316,6 +325,7 @@ Global options:
   --logcat-filter "<filter>" Logcat filter (default: TRMNLAPI + BCHttpClient)
 
 Commands:
+  build                  Build APK only (ant debug). No ADB needed.
   connect
   disconnect
   install --apk path/to/app.apk
@@ -327,6 +337,8 @@ Commands:
   shell
 
 Examples:
+  tools/nook-adb.sh build                 # build only, no device
+  tools/nook-adb.sh --clean build
   tools/nook-adb.sh connect --scan
   tools/nook-adb.sh connect               # defaults to 192.168.1.236:5555
   tools/nook-adb.sh connect --ip 192.168.1.50
@@ -366,7 +378,8 @@ parse_global_opts() {
       --ip)
         shift
         [[ $# -gt 0 ]] || die "--ip requires a value"
-        DEVICE_IP="$1"
+        # store host only so device_target never becomes host:5555:5555
+        DEVICE_IP="${1%%:*}"
         shift
         ;;
       --port)
@@ -396,20 +409,27 @@ parse_global_opts() {
         exit 0
         ;;
       *)
-        # first non-option is the command
+        # first non-option is the command; leave rest for main
+        REMAINING_ARGS=("$@")
         return 0
         ;;
     esac
   done
+  REMAINING_ARGS=()
 }
 
 main() {
+  REMAINING_ARGS=("$@")
   parse_global_opts "$@"
+  set -- "${REMAINING_ARGS[@]}"
 
   local cmd="${1:-}"
   shift || true
 
   case "${cmd}" in
+    build)
+      ant_debug
+      ;;
     connect)
       connect_device
       ;;

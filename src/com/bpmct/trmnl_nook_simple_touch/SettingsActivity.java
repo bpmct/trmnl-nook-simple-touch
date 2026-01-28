@@ -6,14 +6,17 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 
 public class SettingsActivity extends Activity {
     private static final int APP_ROTATION_DEGREES = 90;
     private TextView statusView;
+    private CheckBox allowSleepCheck;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -58,6 +61,24 @@ public class SettingsActivity extends Activity {
         statusParams.topMargin = 6;
         inner.addView(statusView, statusParams);
 
+        TextView displayLabel = new TextView(this);
+        displayLabel.setText("Display / power");
+        displayLabel.setTextSize(14);
+        displayLabel.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams displayLabelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        displayLabelParams.topMargin = 20;
+        inner.addView(displayLabel, displayLabelParams);
+
+        allowSleepCheck = new CheckBox(this);
+        allowSleepCheck.setText("Allow device to sleep between updates");
+        allowSleepCheck.setTextColor(0xFF000000);
+        allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
+        inner.addView(allowSleepCheck, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
@@ -88,6 +109,7 @@ public class SettingsActivity extends Activity {
 
         backButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                saveDisplayPrefs();
                 finish();
             }
         });
@@ -111,5 +133,15 @@ public class SettingsActivity extends Activity {
         if (statusView != null) {
             statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
         }
+        if (allowSleepCheck != null) allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
+    }
+
+    protected void onPause() {
+        saveDisplayPrefs();
+        super.onPause();
+    }
+
+    private void saveDisplayPrefs() {
+        if (allowSleepCheck != null) ApiPrefs.setAllowSleep(this, allowSleepCheck.isChecked());
     }
 }
