@@ -995,12 +995,25 @@ public class DisplayActivity extends Activity {
 
     private void logD(final String msg) {
         Log.d(TAG, msg);
-        // On-screen log shows only "Fetching..." and errors (logE).
+        // Show on screen during boot
+        if (!bootComplete) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    appendLogLine(msg);
+                }
+            });
+        }
     }
 
     private void logW(final String msg) {
         Log.w(TAG, msg);
-        // On-screen log shows only "Fetching..." and errors (logE).
+        if (!bootComplete) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    appendLogLine("W " + msg);
+                }
+            });
+        }
     }
 
     private void logE(final String msg, final Throwable t) {
