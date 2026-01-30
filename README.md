@@ -64,6 +64,8 @@ Note: The "alarm" is a silent RTC wake event—no sound or vibration, just a sig
 
 ### Configuration
 
+Deep sleep is not enabled by default. To set it up:
+
 1. **TRMNL app settings** — Enable "Allow Sleep" and "Write Screensaver"
 2. **Nook display settings** — Settings → Display → Screen timeout: 2 minutes, then set Screensaver to "TRMNL"
 3. **Hide screensaver banner** — In Nook apps: Nook Touch Mod → Configure Mod Options → Hide screensaver banner
