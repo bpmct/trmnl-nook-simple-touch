@@ -46,7 +46,7 @@ In the TRMNL Device settings, set the device type to "Amazon Kindle 7" (800x600)
 
 ## Deep Sleep Mode
 
-Without deep sleep, expect ~60 hours of battery life. With deep sleep enabled and a 30-minute [refresh rate in TRMNL](https://help.trmnl.com/en/articles/10113695-how-refresh-rates-work#h_854b46ae51), battery lasts upwards of 30 days (~0.125% drain per hour).
+Without deep sleep, expect ~60 hours of battery life. With deep sleep enabled and a 30-minute [refresh rate in TRMNL](https://help.trmnl.com/en/articles/10113695-how-refresh-rates-work#h_854b46ae51), battery lasts upwards of 30 days (~0.125% drain per hour). Longer intervals should perform even better.
 
 ### How it works
 
@@ -58,7 +58,7 @@ When deep sleep is enabled, the app follows this cycle:
 4. **NOOK sleeps** — After screen timeout (2 min), device enters deep sleep showing the screensaver
 5. **Wake** — Alarm fires, WiFi reconnects, fetches next image, repeat
 
-Power savings come from WiFi being off during sleep, the device entering true hardware sleep between refreshes, and e-ink displays consuming no power to maintain an image—only to update it. I haven't tested refresh intervals longer than 30 minutes, but battery life should improve further with less frequent updates.
+Power savings come from WiFi being off during sleep, the device entering true hardware sleep between refreshes, and e-ink displays consuming no power to maintain an image—only to update it.
 
 Note: The "alarm" is a silent RTC wake event—no sound or vibration, just a signal to wake the CPU.
 
