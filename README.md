@@ -56,11 +56,9 @@ When deep sleep is enabled, the app follows this cycle:
 2. **Screensaver write** — Copies the image to the NOOK's screensaver path
 3. **Sleep** — Disables keep-screen-awake, turns off WiFi, sets RTC wake alarm
 4. **NOOK sleeps** — After screen timeout (2 min), device enters deep sleep showing the screensaver
-5. **Wake** — Alarm fires, WiFi reconnects, fetches next image, repeat
+5. **Wake** — Wake alarm fires, WiFi reconnects, fetches next image, repeat
 
 Power savings come from WiFi being off during sleep, the device entering true hardware sleep between refreshes, and e-ink displays consuming no power to maintain an image—only to update it.
-
-Note: The "alarm" is a silent RTC wake event—no sound or vibration, just a signal to wake the CPU.
 
 ### Configuration
 
