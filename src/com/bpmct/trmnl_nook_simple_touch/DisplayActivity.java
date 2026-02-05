@@ -900,6 +900,8 @@ public class DisplayActivity extends Activity {
     }
 
     private void forceFullRefresh() {
+        triggerEpdRefresh();
+        
         if (imageRotateLayout != null) {
             imageRotateLayout.requestLayout();
             imageRotateLayout.invalidate();
@@ -917,6 +919,18 @@ public class DisplayActivity extends Activity {
                 if (r != null) r.invalidate();
             }
         }, 40);
+    }
+    
+    /** Trigger NOOK Simple Touch hardware e-ink refresh via sysfs. */
+    private void triggerEpdRefresh() {
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter(
+                "/sys/devices/platform/omap3epfb.0/graphics/fb0/epd_refresh");
+            fw.write("1");
+            fw.close();
+        } catch (Exception e) {
+            // Silently fail - fall back to Android refresh
+        }
     }
 
     private void refreshContentAfterMenu() {
