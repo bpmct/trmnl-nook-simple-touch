@@ -319,6 +319,10 @@ public class DisplayActivity extends Activity {
                     showGenericImageAndSleep();
                     return;
                 }
+                if (fetchInProgress) {
+                    logD("alarm: fetch already in progress, skipping");
+                    return;
+                }
                 // Electric-Sign-style: if we slept with WiFi off, turn it on and wait before fetching
                 WifiManager wifi = (WifiManager) a.getSystemService(Context.WIFI_SERVICE);
                         if (ApiPrefs.isAllowSleep(a) && wifi != null && !wifi.isWifiEnabled()
@@ -369,7 +373,7 @@ public class DisplayActivity extends Activity {
                     startFetch();
                 }
             }
-            scheduleRefresh();
+            // Don't schedule here - fetch completion will schedule the next refresh
         }
     }
 
@@ -1162,6 +1166,8 @@ public class DisplayActivity extends Activity {
                     a.hideBootScreen();
                     a.imageView.setImageBitmap(ar.bitmap);
                     a.lastDisplayedImage = ar.bitmap;
+                    // Always write screensaver immediately so TRMNL appears in NOOK's screensaver list
+                    a.writeScreenshotToScreensaver(ar.bitmap);
                     a.imageView.setVisibility(View.VISIBLE);
                     if (a.contentScroll != null) {
                         a.contentScroll.setVisibility(View.GONE);
@@ -1197,10 +1203,17 @@ public class DisplayActivity extends Activity {
                     if (a.imageView != null) a.imageView.setVisibility(View.GONE);
                     if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
                 }
+                a.hideBootScreen();
                 a.forceFullRefresh();
                 a.logD("response body:\n" + text);
-                a.logD("displayed response");
+                a.logD("displayed response (no image)");
                 a.logD("next display in " + (a.refreshMs / 1000L) + "s");
+                // Schedule next refresh even when no image (keep trying)
+                if (ApiPrefs.isAllowSleep(a)) {
+                    a.scheduleScreensaverThenSleep();
+                } else {
+                    a.scheduleRefresh();
+                }
                 float v = getBatteryVoltage(a);
                 if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
                 int rssi = getWifiRssi(a);
@@ -1220,6 +1233,12 @@ public class DisplayActivity extends Activity {
             a.forceFullRefresh();
             a.logD("fetch error: " + text);
             a.logD("next display in " + (a.refreshMs / 1000L) + "s");
+            // Schedule next refresh even on error (keep trying)
+            if (ApiPrefs.isAllowSleep(a)) {
+                a.scheduleScreensaverThenSleep();
+            } else {
+                a.scheduleRefresh();
+            }
             float v = getBatteryVoltage(a);
             if (v >= 0f) a.logD("Battery-Voltage: " + String.format(Locale.US, "%.1f", v));
             int rssi = getWifiRssi(a);
