@@ -1057,12 +1057,13 @@ public class DisplayActivity extends Activity {
                     if (bcResult != null && !bcResult.startsWith("Error:")) {
                         ApiResult parsed = null;
                         if (a != null) {
+                            final DisplayActivity aFinal = a;
                             TrmnlApiResponseParser.Result r = TrmnlApiResponseParser.parseAndMaybeFetchImage(
-                                    a.getApplicationContext(),
+                                    aFinal.getApplicationContext(),
                                     bcResult,
                                     new TrmnlApiResponseParser.Logger() {
-                                        public void logD(String msg) { a.logD(msg); }
-                                        public void logW(String msg) { a.logW(msg); }
+                                        public void logD(String msg) { aFinal.logD(msg); }
+                                        public void logW(String msg) { aFinal.logW(msg); }
                                     });
                             if (r != null && r.showImage && r.bitmap != null) {
                                 if (r.refreshRateSeconds > 0) {
