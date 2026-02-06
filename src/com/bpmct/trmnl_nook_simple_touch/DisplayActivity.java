@@ -81,6 +81,8 @@ public class DisplayActivity extends Activity {
     private volatile long refreshMs = DEFAULT_REFRESH_MS;
     /** Last displayed API image; used for screensaver file when allow-sleep + write-screensaver. */
     private Bitmap lastDisplayedImage;
+    /** Reason for current fetch (for logging) */
+    private volatile String fetchReason = "unknown";
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_CHARS = 6000;
     private static final int APP_ROTATION_DEGREES = 90;
@@ -239,6 +241,7 @@ public class DisplayActivity extends Activity {
                         hideMenu();
                         showGenericImageAndSleep();
                     } else {
+                        fetchReason = "menu-next";
                         showMenuStatus("Loading...", false);
                         startFetch();
                     }
@@ -320,6 +323,7 @@ public class DisplayActivity extends Activity {
                     logD("alarm: fetch already in progress, skipping");
                     return;
                 }
+                fetchReason = "alarm";
                 // Electric-Sign-style: if we slept with WiFi off, turn it on and wait before fetching
                 WifiManager wifi = (WifiManager) a.getSystemService(Context.WIFI_SERVICE);
                         if (ApiPrefs.isAllowSleep(a) && wifi != null && !wifi.isWifiEnabled()
@@ -341,6 +345,7 @@ public class DisplayActivity extends Activity {
         if (USE_GENERIC_IMAGE) {
             showGenericImageAndSleep();
         } else if (ensureCredentials()) {
+            fetchReason = "onCreate";
             if (wifiJustOn) {
                 waitForWifiThenFetch();
             } else {
@@ -364,6 +369,7 @@ public class DisplayActivity extends Activity {
             showGenericImageAndSleep();
         } else if (ensureCredentials()) {
             if (!fetchInProgress) {
+                fetchReason = "onResume";
                 if (wifiJustOn) {
                     waitForWifiThenFetch();
                 } else {
@@ -758,8 +764,20 @@ public class DisplayActivity extends Activity {
             showMenuStatus("Loading...", false);
         }
         String httpsUrl = ApiPrefs.getApiBaseUrl(this) + API_DISPLAY_PATH;
+        logD("fetch reason=" + fetchReason + " wifi=" + getWifiStateString());
         logD("start: " + httpsUrl);
         ApiFetchTask.start(this, httpsUrl, ApiPrefs.getApiId(this), ApiPrefs.getApiToken(this));
+    }
+
+    private String getWifiStateString() {
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        if (wifi == null) return "null";
+        if (!wifi.isWifiEnabled()) return "off";
+        WifiInfo info = wifi.getConnectionInfo();
+        if (info == null) return "on/no-info";
+        int ip = info.getIpAddress();
+        if (ip == 0) return "on/no-ip";
+        return "connected";
     }
 
     /** Show "Loading..." in content area and hide log so the dialog is clean. */
@@ -778,6 +796,7 @@ public class DisplayActivity extends Activity {
         if (refreshRunnable == null) {
             refreshRunnable = new Runnable() {
                 public void run() {
+                    fetchReason = "timer";
                     startFetch();
                     refreshHandler.postDelayed(this, refreshMs);
                 }
