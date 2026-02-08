@@ -1,6 +1,6 @@
 # TRMNL client for Nook Simple Touch
 
-A [TRMNL client](https://trmnl.com/developers) for the Nook Simple Touch (BNRV300). The device usually goes for around $30 on eBay and has an 800x600 e-ink display.
+A [TRMNL client](https://trmnl.com/developers) for the Nook Simple Touch (BNRV300) and Nook Simple Touch with Glowlight (BNRV350). These devices usually go for around $30 on eBay and have an 800x600 e-ink display.
 
 <table>
 <tr>
