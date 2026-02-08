@@ -18,6 +18,10 @@ Suggested guidance to give users:
 - Create and push the tag:
   - `git tag v0.1.0`
   - `git push origin main --tags`
+- Wait for the **tag** CI run (not the branch run). Both trigger, but only the
+  tag run (`refs/tags/v*`) creates the GitHub Release. Use `gh run list` and
+  look for the run with the tag ref (e.g., `v0.1.0`), then `gh run watch <id>`.
+- After CI completes, update release notes: `gh release edit v0.1.0 --notes-file -`
 
 ## Required GitHub secrets (release signing)
 
