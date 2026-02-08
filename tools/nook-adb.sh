@@ -80,7 +80,7 @@ pick_ant() {
 ANT_BIN="$(pick_ant || true)"
 
 ADB_HOSTPORT=""
-DEVICE_IP="192.168.1.236"
+DEVICE_IP="${NOOK_IP:-192.168.1.239}"
 DEVICE_PORT="5555"
 APK_PATH=""
 CIDR=""

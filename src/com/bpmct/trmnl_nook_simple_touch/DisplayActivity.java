@@ -369,7 +369,9 @@ public class DisplayActivity extends Activity {
         boolean wifiJustOn = ensureWifiOnWhenForeground();
 
         applyIntentState(getIntent());
-        if (USE_GENERIC_IMAGE) {
+        if (ApiPrefs.isGiftModeEnabled(this)) {
+            showGiftModeScreen();
+        } else if (USE_GENERIC_IMAGE) {
             showGenericImageAndSleep();
         } else if (ensureCredentials()) {
             if (!fetchInProgress) {
@@ -858,6 +860,155 @@ public class DisplayActivity extends Activity {
         }
     }
 
+    private void showGiftModeScreen() {
+        hideBootScreen();
+        if (bootLayout != null) bootLayout.setVisibility(View.GONE);
+        if (logView != null) logView.setVisibility(View.GONE);
+        if (imageRotateLayout != null) imageRotateLayout.setVisibility(View.GONE);
+        if (contentScroll != null) contentScroll.setVisibility(View.VISIBLE);
+        
+        String code = ApiPrefs.getFriendlyDeviceCode(this);
+        String fromName = ApiPrefs.getGiftFromName(this);
+        String toName = ApiPrefs.getGiftToName(this);
+        
+        // Build a left-aligned layout
+        ScrollView.LayoutParams scrollParams = new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT);
+        
+        LinearLayout giftLayout = new LinearLayout(this);
+        giftLayout.setOrientation(LinearLayout.VERTICAL);
+        giftLayout.setGravity(Gravity.CENTER_VERTICAL);
+        giftLayout.setPadding(50, 40, 50, 40);
+        giftLayout.setLayoutParams(scrollParams);
+        
+        // Logo + Title row
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.ic_launcher);
+        headerRow.addView(logo);
+        
+        TextView title = new TextView(this);
+        title.setText("TRMNL");
+        title.setTextSize(22);
+        title.setTextColor(0xFF000000);
+        title.setPadding(12, 0, 0, 0);
+        headerRow.addView(title);
+        
+        giftLayout.addView(headerRow);
+        
+        // Greeting
+        StringBuilder greeting = new StringBuilder();
+        if (toName != null && toName.length() > 0) {
+            greeting.append("Hey ").append(toName).append("! ");
+        }
+        if (fromName != null && fromName.length() > 0) {
+            greeting.append(fromName).append(" gifted you this display!");
+        } else {
+            greeting.append("This display was gifted to you!");
+        }
+        
+        TextView greetingView = new TextView(this);
+        greetingView.setText(greeting.toString());
+        greetingView.setTextSize(14);
+        greetingView.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams greetParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        greetParams.topMargin = 16;
+        giftLayout.addView(greetingView, greetParams);
+        
+        // Description
+        TextView desc = new TextView(this);
+        desc.setText("Use it for weather, calendars, news, or hundreds of other plugins from trmnl.com");
+        desc.setTextSize(12);
+        desc.setTextColor(0xFF666666);
+        LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        descParams.topMargin = 6;
+        giftLayout.addView(desc, descParams);
+        
+        // Divider line
+        View divider = new View(this);
+        divider.setBackgroundColor(0xFFCCCCCC);
+        LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, 1);
+        divParams.topMargin = 20;
+        giftLayout.addView(divider, divParams);
+        
+        // Setup steps title
+        TextView stepsTitle = new TextView(this);
+        stepsTitle.setText("SETUP");
+        stepsTitle.setTextSize(11);
+        stepsTitle.setTextColor(0xFF888888);
+        LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        stepsTitleParams.topMargin = 16;
+        giftLayout.addView(stepsTitle, stepsTitleParams);
+        
+        // Step 1
+        giftLayout.addView(createStepRow("1", "Sign up at trmnl.com/signup"), createStepParams(12));
+        
+        // Step 2
+        String step2Text = (code != null && code.length() > 0) 
+                ? "Add device with code: " + code 
+                : "Add device (get code from gifter)";
+        giftLayout.addView(createStepRow("2", step2Text), createStepParams(8));
+        
+        // Step 3
+        giftLayout.addView(createStepRow("3", "Tap screen → Settings → Edit"), createStepParams(8));
+        
+        // Replace contentView's parent contents
+        if (contentScroll != null) {
+            contentScroll.removeAllViews();
+            contentScroll.setFillViewport(true);
+            contentScroll.addView(giftLayout);
+        }
+        
+        // Write gift mode screen to screensaver so NOOK shows it when asleep
+        writeGiftModeScreensaver(code, fromName, toName);
+    }
+    
+    private LinearLayout createStepRow(String number, String text) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        
+        TextView numView = new TextView(this);
+        numView.setText(number);
+        numView.setTextSize(16);
+        numView.setTextColor(0xFF000000);
+        numView.setGravity(Gravity.CENTER);
+        numView.setBackgroundColor(0xFFEEEEEE);
+        numView.setPadding(12, 4, 12, 4);
+        row.addView(numView);
+        
+        TextView textView = new TextView(this);
+        textView.setText(text);
+        textView.setTextSize(12);
+        textView.setTextColor(0xFF000000);
+        textView.setPadding(12, 0, 0, 0);
+        textView.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(textView);
+        
+        return row;
+    }
+    
+    private LinearLayout.LayoutParams createStepParams(int topMargin) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = topMargin;
+        return params;
+    }
+    
+    private void writeGiftModeScreensaver(String code, String fromName, String toName) {
+        // Use gift screensaver image (already in native portrait orientation 600x800)
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.gift_screensaver);
+        if (bitmap != null) {
+            writeScreenshotToScreensaver(bitmap);
+        }
+    }
+
     private void toggleMenu() {
         if (menuVisible) {
             hideMenu();
@@ -1011,6 +1162,10 @@ public class DisplayActivity extends Activity {
     }
 
     private boolean ensureCredentials() {
+        // Don't redirect to settings if gift mode is enabled
+        if (ApiPrefs.isGiftModeEnabled(this)) {
+            return false;
+        }
         if (!ApiPrefs.hasCredentials(this)) {
             startActivity(new Intent(this, SettingsActivity.class));
             return false;

@@ -2,6 +2,7 @@ package com.bpmct.trmnl_nook_simple_touch;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -12,12 +13,21 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ScrollView;
 
 public class SettingsActivity extends Activity {
     private static final int APP_ROTATION_DEGREES = 90;
     private TextView statusView;
     private CheckBox allowSleepCheck;
     private CheckBox fileLoggingCheck;
+    private CheckBox giftModeCheck;
+    private Button giftSettingsButton;
+    private TextView sleepHint;
+    private FrameLayout rootLayout;
+    private FrameLayout outerRoot;
+    private View flashOverlay;
+    private final Handler handler = new Handler();
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -26,160 +36,220 @@ public class SettingsActivity extends Activity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        FrameLayout root = new FrameLayout(this);
-        root.setLayoutParams(new FrameLayout.LayoutParams(
+        rootLayout = new FrameLayout(this);
+        rootLayout.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
+        rootLayout.setBackgroundColor(0xFFFFFFFF);
 
-        LinearLayout inner = new LinearLayout(this);
-        inner.setOrientation(LinearLayout.VERTICAL);
-        inner.setPadding(24, 24, 24, 24);
-        inner.setBackgroundColor(0xFFFFFFFF);
+        ScrollView scroll = new ScrollView(this);
+        
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setPadding(24, 20, 24, 20);
 
+        // Title
         TextView title = new TextView(this);
         title.setText("Settings");
-        title.setTextSize(20);
+        title.setTextSize(18);
         title.setTextColor(0xFF000000);
-        inner.addView(title);
+        main.addView(title);
 
-        TextView statusLabel = new TextView(this);
-        statusLabel.setText("Credentials");
-        statusLabel.setTextSize(14);
-        statusLabel.setTextColor(0xFF000000);
-        LinearLayout.LayoutParams statusLabelParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        statusLabelParams.topMargin = 24;
-        inner.addView(statusLabel, statusLabelParams);
-
+        // Credentials
+        main.addView(createSectionLabel("Credentials"));
         statusView = new TextView(this);
         statusView.setTextSize(12);
-        statusView.setTextColor(0xFF000000);
-        statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
+        statusView.setTextColor(0xFF444444);
+        statusView.setText(ApiPrefs.hasCredentials(this) ? "Configured" : "Not set - find in Device Settings → Developer Perks on trmnl.com");
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         statusParams.topMargin = 6;
-        inner.addView(statusView, statusParams);
+        main.addView(statusView, statusParams);
+        Button editButton = createGreyButton("Edit Credentials");
+        editButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startActivity(new android.content.Intent(SettingsActivity.this, CredentialsActivity.class));
+            }
+        });
+        LinearLayout.LayoutParams editParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        editParams.topMargin = 8;
+        main.addView(editButton, editParams);
 
-        TextView displayLabel = new TextView(this);
-        displayLabel.setText("Display / power");
-        displayLabel.setTextSize(14);
-        displayLabel.setTextColor(0xFF000000);
-        LinearLayout.LayoutParams displayLabelParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        displayLabelParams.topMargin = 24;
-        inner.addView(displayLabel, displayLabelParams);
-
+        // Display
+        main.addView(createSectionLabel("Display"));
         allowSleepCheck = new CheckBox(this);
-        allowSleepCheck.setText("Allow device to sleep between updates");
+        allowSleepCheck.setText("Sleep between updates");
         allowSleepCheck.setTextColor(0xFF000000);
         allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
-        inner.addView(allowSleepCheck, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        main.addView(allowSleepCheck);
 
-        TextView loggingLabel = new TextView(this);
-        loggingLabel.setText("Troubleshooting");
-        loggingLabel.setTextSize(14);
-        loggingLabel.setTextColor(0xFF000000);
-        LinearLayout.LayoutParams loggingLabelParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        loggingLabelParams.topMargin = 24;
-        inner.addView(loggingLabel, loggingLabelParams);
+        sleepHint = new TextView(this);
+        sleepHint.setText("Set screensaver to TRMNL, sleep after 2 min");
+        sleepHint.setTextSize(11);
+        sleepHint.setTextColor(0xFF888888);
+        sleepHint.setPadding(40, 0, 0, 0);
+        sleepHint.setVisibility(allowSleepCheck.isChecked() ? View.VISIBLE : View.GONE);
+        main.addView(sleepHint);
 
+        allowSleepCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                sleepHint.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+                flashRefresh();
+            }
+        });
+
+        // Gift Mode
+        main.addView(createSectionLabel("Gift Mode"));
+        giftModeCheck = new CheckBox(this);
+        giftModeCheck.setText("Enable gift mode");
+        giftModeCheck.setTextColor(0xFF000000);
+        giftModeCheck.setChecked(ApiPrefs.isGiftModeEnabled(this));
+        giftModeCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                updateGiftSettingsVisibility();
+                if (isChecked) {
+                    startActivity(new android.content.Intent(SettingsActivity.this, GiftModeSettingsActivity.class));
+                }
+            }
+        });
+        main.addView(giftModeCheck);
+
+        giftSettingsButton = createGreyButton("Configure Gift Mode");
+        giftSettingsButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startActivity(new android.content.Intent(SettingsActivity.this, GiftModeSettingsActivity.class));
+            }
+        });
+        LinearLayout.LayoutParams giftBtnParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        giftBtnParams.topMargin = 6;
+        main.addView(giftSettingsButton, giftBtnParams);
+        updateGiftSettingsVisibility();
+
+        // Debug Logs
+        main.addView(createSectionLabel("Debug Logs"));
         fileLoggingCheck = new CheckBox(this);
-        fileLoggingCheck.setText("Save debug logs to file");
+        fileLoggingCheck.setText("Save to file");
         fileLoggingCheck.setTextColor(0xFF000000);
         fileLoggingCheck.setChecked(ApiPrefs.isFileLoggingEnabled(this));
-        LinearLayout.LayoutParams logCheckParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        logCheckParams.topMargin = 8;
-        inner.addView(fileLoggingCheck, logCheckParams);
+        main.addView(fileLoggingCheck);
 
         TextView logHint = new TextView(this);
-        logHint.setText("Logs saved to: /media/My Files/trmnl.log");
+        logHint.setText("/media/My Files/trmnl.log");
         logHint.setTextSize(11);
-        logHint.setTextColor(0xFF666666);
-        LinearLayout.LayoutParams logHintParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        logHintParams.leftMargin = 4;
-        inner.addView(logHint, logHintParams);
+        logHint.setTextColor(0xFF888888);
+        logHint.setPadding(40, 0, 0, 0);
+        main.addView(logHint);
 
-        Button clearLogsButton = new Button(this);
-        clearLogsButton.setText("Clear Logs");
-        clearLogsButton.setTextColor(0xFF000000);
+        Button clearLogsButton = createGreyButton("Clear Logs");
         clearLogsButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 FileLogger.clear();
             }
         });
         LinearLayout.LayoutParams clearParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        clearParams.topMargin = 8;
-        inner.addView(clearLogsButton, clearParams);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        clearParams.topMargin = 6;
+        main.addView(clearLogsButton, clearParams);
 
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        actionsParams.topMargin = 28;
-        inner.addView(actions, actionsParams);
+        scroll.addView(main);
+        rootLayout.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
 
-        Button editButton = new Button(this);
-        editButton.setText("Edit");
-        editButton.setTextColor(0xFF000000);
-        actions.addView(editButton);
-
+        // Back button at bottom of screen
         Button backButton = new Button(this);
         backButton.setText("Back");
         backButton.setTextColor(0xFF000000);
-        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        backParams.leftMargin = 16;
-        actions.addView(backButton, backParams);
-
-        editButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                startActivity(new android.content.Intent(SettingsActivity.this, CredentialsActivity.class));
-            }
-        });
-
         backButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 saveDisplayPrefs();
                 finish();
             }
         });
+        FrameLayout.LayoutParams backParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        backParams.bottomMargin = 16;
+        rootLayout.addView(backButton, backParams);
 
-        FrameLayout.LayoutParams rotateParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER);
-        root.addView(inner, rotateParams);
+        // No rotation - keep native orientation for keyboard compatibility
+        outerRoot = new FrameLayout(this);
+        outerRoot.addView(rootLayout, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
 
-        RotateLayout rotateRoot = new RotateLayout(this);
-        rotateRoot.setAngle(APP_ROTATION_DEGREES);
-        rotateRoot.addView(root, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.FILL_PARENT,
-                ViewGroup.LayoutParams.FILL_PARENT));
-        setContentView(rotateRoot);
+        flashOverlay = new View(this);
+        flashOverlay.setBackgroundColor(0xFF000000);
+        flashOverlay.setVisibility(View.GONE);
+        outerRoot.addView(flashOverlay, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
+
+        setContentView(outerRoot);
+    }
+
+    private TextView createSectionLabel(String text) {
+        TextView label = new TextView(this);
+        label.setText(text);
+        label.setTextSize(13);
+        label.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = 28;
+        label.setLayoutParams(params);
+        return label;
+    }
+
+    private Button createGreyButton(String text) {
+        Button btn = new Button(this);
+        btn.setText(text);
+        btn.setTextColor(0xFF444444);
+        btn.setBackgroundColor(0xFFDDDDDD);
+        return btn;
+    }
+
+    private void updateGiftSettingsVisibility() {
+        if (giftSettingsButton != null && giftModeCheck != null) {
+            giftSettingsButton.setVisibility(giftModeCheck.isChecked() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void flashRefresh() {
+        if (flashOverlay == null || outerRoot == null) return;
+        flashOverlay.setBackgroundColor(0xFF000000);
+        flashOverlay.setVisibility(View.VISIBLE);
+        outerRoot.bringChildToFront(flashOverlay);
+        outerRoot.invalidate();
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                if (flashOverlay == null) return;
+                flashOverlay.setBackgroundColor(0xFFFFFFFF);
+                outerRoot.invalidate();
+                handler.postDelayed(new Runnable() {
+                    public void run() {
+                        if (flashOverlay != null) {
+                            flashOverlay.setVisibility(View.GONE);
+                        }
+                        if (outerRoot != null) {
+                            outerRoot.invalidate();
+                        }
+                    }
+                }, 100);
+            }
+        }, 100);
     }
 
     protected void onResume() {
         super.onResume();
         if (statusView != null) {
-            statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
+            statusView.setText(ApiPrefs.hasCredentials(this) ? "Configured" : "Not set - find in Device Settings → Developer Perks on trmnl.com");
         }
         if (allowSleepCheck != null) allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
         if (fileLoggingCheck != null) fileLoggingCheck.setChecked(ApiPrefs.isFileLoggingEnabled(this));
+        if (giftModeCheck != null) giftModeCheck.setChecked(ApiPrefs.isGiftModeEnabled(this));
+        if (sleepHint != null) sleepHint.setVisibility(allowSleepCheck.isChecked() ? View.VISIBLE : View.GONE);
+        if (giftSettingsButton != null && giftModeCheck != null) {
+            giftSettingsButton.setVisibility(giftModeCheck.isChecked() ? View.VISIBLE : View.GONE);
+        }
     }
 
     protected void onPause() {
@@ -194,5 +264,6 @@ public class SettingsActivity extends Activity {
             ApiPrefs.setFileLoggingEnabled(this, enabled);
             FileLogger.setEnabled(enabled);
         }
+        if (giftModeCheck != null) ApiPrefs.setGiftModeEnabled(this, giftModeCheck.isChecked());
     }
 }

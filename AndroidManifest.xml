@@ -40,6 +40,11 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="Credentials"
             android:theme="@style/FullscreenTheme" />
+        <activity
+            android:name=".GiftModeSettingsActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="Gift Mode Settings"
+            android:theme="@style/FullscreenTheme" />
     </application>
 
 </manifest>

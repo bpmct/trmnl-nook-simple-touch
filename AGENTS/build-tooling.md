@@ -76,3 +76,21 @@ When working in a git worktree, you need:
 ## Release flow
 
 Release guidance now lives in `AGENTS/release.md`.
+
+## Image Generation with ImageMagick
+
+For generating static images (e.g., screensavers), use ImageMagick `convert`:
+
+```bash
+# Example: Add text to existing image and rotate for NOOK screensaver
+convert res/drawable-mdpi/generic_display.jpg \
+  -gravity South -pointsize 16 -fill 'gray50' -font DejaVu-Sans \
+  -annotate +0+30 "Your text here" \
+  -rotate 90 \
+  res/drawable-mdpi/output.png
+```
+
+Key notes:
+- Use `-font DejaVu-Sans` to avoid italic text (default can be italic)
+- NOOK screensaver is native portrait (600x800), so rotate landscape images 90° CW
+- Use `gray50` for subtle text matching app UI

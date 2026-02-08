@@ -59,6 +59,19 @@ public class CredentialsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         inner.addView(baseUrlInput, baseUrlParams);
 
+        // Show hint about where to find credentials if using default URL
+        String currentBaseUrl = ApiPrefs.getApiBaseUrl(this);
+        if (currentBaseUrl != null && currentBaseUrl.contains("usetrmnl.com")) {
+            TextView credHint = new TextView(this);
+            credHint.setText("Find credentials in Device Settings → Developer Perks on trmnl.com");
+            credHint.setTextSize(11);
+            credHint.setTextColor(0xFF888888);
+            LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            hintParams.topMargin = 8;
+            inner.addView(credHint, hintParams);
+        }
+
         TextView idLabel = new TextView(this);
         idLabel.setText("Device ID (MAC Address)");
         idLabel.setTextSize(14);
@@ -156,6 +169,8 @@ public class CredentialsActivity extends Activity {
                 }
                 ApiPrefs.saveCredentials(CredentialsActivity.this, id, token);
                 ApiPrefs.saveApiBaseUrl(CredentialsActivity.this, baseUrl);
+                // Auto-disable gift mode when credentials are saved
+                ApiPrefs.setGiftModeEnabled(CredentialsActivity.this, false);
                 statusView.setText("Saved.");
                 android.content.Intent intent = new android.content.Intent(CredentialsActivity.this, DisplayActivity.class);
                 intent.putExtra(DisplayActivity.EXTRA_CLEAR_IMAGE, true);

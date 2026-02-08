@@ -11,6 +11,10 @@ public class ApiPrefs {
     private static final String DEFAULT_API_BASE_URL = "https://usetrmnl.com/api";
     private static final String KEY_ALLOW_SLEEP = "allow_sleep";
     private static final String KEY_FILE_LOGGING = "file_logging";
+    private static final String KEY_GIFT_MODE = "gift_mode";
+    private static final String KEY_FRIENDLY_DEVICE_CODE = "friendly_device_code";
+    private static final String KEY_GIFT_FROM_NAME = "gift_from_name";
+    private static final String KEY_GIFT_TO_NAME = "gift_to_name";
     private static final String SCREENSAVER_PATH = "/media/screensavers/TRMNL/display.png";
 
     public static boolean hasCredentials(Context context) {
@@ -91,7 +95,7 @@ public class ApiPrefs {
     /** Whether the device may sleep between display updates (Electric-Sign-style). Default true. */
     public static boolean isAllowSleep(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(KEY_ALLOW_SLEEP, true);
+        return prefs.getBoolean(KEY_ALLOW_SLEEP, false);
     }
 
     public static void setAllowSleep(Context context, boolean allow) {
@@ -112,5 +116,51 @@ public class ApiPrefs {
     /** File path for screensaver image (hardcoded for NOOK). */
     public static String getScreensaverPath() {
         return SCREENSAVER_PATH;
+    }
+
+    public static boolean isGiftModeEnabled(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_GIFT_MODE, false);
+    }
+
+    public static void setGiftModeEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_GIFT_MODE, enabled).commit();
+    }
+
+    public static String getFriendlyDeviceCode(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String value = prefs.getString(KEY_FRIENDLY_DEVICE_CODE, null);
+        if (value == null || value.trim().length() == 0) return null;
+        return value.trim();
+    }
+
+    public static void saveFriendlyDeviceCode(Context context, String code) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_FRIENDLY_DEVICE_CODE, code != null ? code.trim() : "").commit();
+    }
+
+    public static String getGiftFromName(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String value = prefs.getString(KEY_GIFT_FROM_NAME, null);
+        if (value == null || value.trim().length() == 0) return null;
+        return value.trim();
+    }
+
+    public static void saveGiftFromName(Context context, String name) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_GIFT_FROM_NAME, name != null ? name.trim() : "").commit();
+    }
+
+    public static String getGiftToName(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String value = prefs.getString(KEY_GIFT_TO_NAME, null);
+        if (value == null || value.trim().length() == 0) return null;
+        return value.trim();
+    }
+
+    public static void saveGiftToName(Context context, String name) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_GIFT_TO_NAME, name != null ? name.trim() : "").commit();
     }
 }
