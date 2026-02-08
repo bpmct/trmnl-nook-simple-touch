@@ -2,6 +2,8 @@
 
 A [TRMNL client](https://trmnl.com/developers) for the Nook Simple Touch (BNRV300) and Nook Simple Touch with Glowlight (BNRV350). These devices usually go for around $30 on eBay and have an 800x600 e-ink display.
 
+> **Have a newer Nook?** Check out [trmnl-nook](https://github.com/usetrmnl/trmnl-nook) for BNRV500 and other newer devices.
+
 <table>
 <tr>
 <td width="33%" align="center"><img src="images/configuration.jpg" alt="Configuration"><br><em>Configuration screen</em></td>
