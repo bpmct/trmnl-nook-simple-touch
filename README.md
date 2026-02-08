@@ -19,8 +19,8 @@ Questions or feedback? Please [open an issue](https://github.com/bpmct/trmnl-noo
 - [Device Settings](#device-settings)
 - [Features](#features)
 - [Deep Sleep Mode](#deep-sleep-mode)
-- [Gift Mode](#gift-mode)
 - [Frames and Cases](#frames-and-cases)
+- [Gift Mode](#gift-mode)
 - [Roadmap](#roadmap)
 - [Development](#development)
 - [Disclaimer](#disclaimer)
@@ -55,27 +55,23 @@ In the TRMNL Device settings, set the device type to "Amazon Kindle 7" (800x600)
 
 ## Deep Sleep Mode
 
-Without deep sleep, expect ~60 hours of battery life. With deep sleep enabled and a 30-minute [refresh rate in TRMNL](https://help.trmnl.com/en/articles/10113695-how-refresh-rates-work#h_854b46ae51), battery lasts upwards of 30 days (~0.125% drain per hour). Longer intervals should perform even better.
+Without deep sleep, expect ~60 hours of battery life. With deep sleep and a 30-minute refresh rate, battery lasts 30+ days. The app writes each image to the Nook's screensaver, turns off WiFi, and sets an RTC alarm to wake up for the next refresh.
 
-### How it works
+To enable:
+1. In the app: Enable "Allow Sleep" and "Write Screensaver"
+2. Nook settings: Set screen timeout to 2 minutes, screensaver to "TRMNL"
+3. In Nook Touch Mod: Hide screensaver banner
 
-When deep sleep is enabled, the app follows this cycle:
+## Frames and Cases
 
-1. **Display** — Shows fetched image for 5 seconds
-2. **Screensaver write** — Copies the image to the NOOK's screensaver path
-3. **Sleep** — Disables keep-screen-awake, turns off WiFi, sets RTC wake alarm
-4. **NOOK sleeps** — After screen timeout (2 min), device enters deep sleep showing the screensaver
-5. **Wake** — Wake alarm fires, WiFi reconnects, fetches next image, repeat
+The Nook Simple Touch often develops sticky residue on its rubberized surfaces as it ages. [iFixit](https://www.ifixit.com/Device/Barnes_%26_Noble_Nook_Simple_Touch) has great teardown and repair guides if you need to clean or refurbish your device.
 
-Power savings come from WiFi being off during sleep, the device entering true hardware sleep between refreshes, and e-ink displays consuming no power to maintain an image—only to update it.
+<img src="images/frame-comparison.jpg" alt="3D-printed frame (left) vs original case (right)" width="500">
 
-### Configuration
-
-Deep sleep is not enabled by default. To set it up:
-
-1. **TRMNL app settings** — Enable "Allow Sleep" and "Write Screensaver"
-2. **Nook display settings** — `Settings → Display → Screen timeout`: 2 minutes, then set Screensaver to "TRMNL"
-3. **Hide screensaver banner** — In Nook apps: `Nook Touch Mod → Configure Mod Options`: Hide screensaver banner
+For a custom frame, I recommend this [3D-printed case on Thingiverse](https://www.thingiverse.com/thing:7140441). It requires:
+- M3x4 flush screws
+- M3x5x4 threaded inserts (soldering iron required to install)
+- The original screws and inserts from the Nook Simple Touch
 
 ## Gift Mode
 
@@ -86,15 +82,6 @@ To set up:
 2. Get the friendly device code from [trmnl.com/claim-a-device](https://trmnl.com/claim-a-device)
 3. In the app: Settings → Enable "Gift mode" → "Configure Gift Mode"
 4. Enter your name, recipient's name, and the device code
-
-## Frames and Cases
-
-The Nook Simple Touch often develops sticky residue on its rubberized surfaces as it ages. [iFixit](https://www.ifixit.com/Device/Barnes_%26_Noble_Nook_Simple_Touch) has great teardown and repair guides if you need to clean or refurbish your device.
-
-For a custom frame, I recommend this [3D-printed case on Thingiverse](https://www.thingiverse.com/thing:7140441). It requires:
-- M3x4 flush screws
-- M3x5x4 threaded inserts (soldering iron required to install)
-- The original screws and inserts from the Nook Simple Touch
 
 ## Roadmap
 
