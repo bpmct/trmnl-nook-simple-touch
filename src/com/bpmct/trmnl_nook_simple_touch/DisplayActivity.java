@@ -157,6 +157,7 @@ public class DisplayActivity extends Activity {
         imageView = new ImageView(this);
         imageView.setScaleType(ImageView.ScaleType.FIT_XY);
         imageView.setVisibility(View.GONE);
+        imageRotateLayout.setVisibility(View.GONE); // Hidden during boot so logView gets full height
         imageRotateLayout.addView(imageView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT,
                 ViewGroup.LayoutParams.FILL_PARENT));
@@ -635,6 +636,7 @@ public class DisplayActivity extends Activity {
         }
         imageView.setImageBitmap(bitmap);
         imageView.setVisibility(View.VISIBLE);
+        if (imageRotateLayout != null) imageRotateLayout.setVisibility(View.VISIBLE);
         if (contentScroll != null) contentScroll.setVisibility(View.GONE);
         if (logView != null) logView.setVisibility(View.GONE);
         forceFullRefresh();
@@ -1243,6 +1245,7 @@ public class DisplayActivity extends Activity {
                     // Always write screensaver immediately so TRMNL appears in NOOK's screensaver list
                     a.writeScreenshotToScreensaver(ar.bitmap);
                     a.imageView.setVisibility(View.VISIBLE);
+                    if (a.imageRotateLayout != null) a.imageRotateLayout.setVisibility(View.VISIBLE);
                     if (a.contentScroll != null) {
                         a.contentScroll.setVisibility(View.GONE);
                     }
