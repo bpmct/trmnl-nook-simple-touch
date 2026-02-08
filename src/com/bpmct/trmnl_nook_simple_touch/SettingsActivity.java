@@ -49,7 +49,7 @@ public class SettingsActivity extends Activity {
         LinearLayout.LayoutParams statusLabelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        statusLabelParams.topMargin = 16;
+        statusLabelParams.topMargin = 24;
         inner.addView(statusLabel, statusLabelParams);
 
         statusView = new TextView(this);
@@ -69,7 +69,7 @@ public class SettingsActivity extends Activity {
         LinearLayout.LayoutParams displayLabelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        displayLabelParams.topMargin = 20;
+        displayLabelParams.topMargin = 24;
         inner.addView(displayLabel, displayLabelParams);
 
         allowSleepCheck = new CheckBox(this);
@@ -81,22 +81,34 @@ public class SettingsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView loggingLabel = new TextView(this);
-        loggingLabel.setText("Logging");
+        loggingLabel.setText("Troubleshooting");
         loggingLabel.setTextSize(14);
         loggingLabel.setTextColor(0xFF000000);
         LinearLayout.LayoutParams loggingLabelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        loggingLabelParams.topMargin = 20;
+        loggingLabelParams.topMargin = 24;
         inner.addView(loggingLabel, loggingLabelParams);
 
         fileLoggingCheck = new CheckBox(this);
-        fileLoggingCheck.setText("Capture logs to file");
+        fileLoggingCheck.setText("Save debug logs to file");
         fileLoggingCheck.setTextColor(0xFF000000);
         fileLoggingCheck.setChecked(ApiPrefs.isFileLoggingEnabled(this));
-        inner.addView(fileLoggingCheck, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams logCheckParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        logCheckParams.topMargin = 8;
+        inner.addView(fileLoggingCheck, logCheckParams);
+
+        TextView logHint = new TextView(this);
+        logHint.setText("Logs saved to: /media/My Files/trmnl.log");
+        logHint.setTextSize(11);
+        logHint.setTextColor(0xFF666666);
+        LinearLayout.LayoutParams logHintParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        logHintParams.leftMargin = 4;
+        inner.addView(logHint, logHintParams);
 
         Button clearLogsButton = new Button(this);
         clearLogsButton.setText("Clear Logs");
@@ -106,14 +118,18 @@ public class SettingsActivity extends Activity {
                 FileLogger.clear();
             }
         });
-        inner.addView(clearLogsButton);
+        LinearLayout.LayoutParams clearParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        clearParams.topMargin = 8;
+        inner.addView(clearLogsButton, clearParams);
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        actionsParams.topMargin = 16;
+        actionsParams.topMargin = 28;
         inner.addView(actions, actionsParams);
 
         Button editButton = new Button(this);
