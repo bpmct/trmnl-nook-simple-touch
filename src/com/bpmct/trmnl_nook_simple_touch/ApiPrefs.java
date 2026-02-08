@@ -10,6 +10,7 @@ public class ApiPrefs {
     private static final String KEY_API_BASE_URL = "api_base_url";
     private static final String DEFAULT_API_BASE_URL = "https://usetrmnl.com/api";
     private static final String KEY_ALLOW_SLEEP = "allow_sleep";
+    private static final String KEY_FILE_LOGGING = "file_logging";
     private static final String SCREENSAVER_PATH = "/media/screensavers/TRMNL/display.png";
 
     public static boolean hasCredentials(Context context) {
@@ -96,6 +97,16 @@ public class ApiPrefs {
     public static void setAllowSleep(Context context, boolean allow) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putBoolean(KEY_ALLOW_SLEEP, allow).commit();
+    }
+
+    public static boolean isFileLoggingEnabled(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_FILE_LOGGING, false);
+    }
+
+    public static void setFileLoggingEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_FILE_LOGGING, enabled).commit();
     }
 
     /** File path for screensaver image (hardcoded for NOOK). */

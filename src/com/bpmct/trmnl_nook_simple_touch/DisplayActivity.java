@@ -100,6 +100,9 @@ public class DisplayActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Initialize file logging from saved preference
+        FileLogger.setEnabled(ApiPrefs.isFileLoggingEnabled(this));
+
         // NOOK Simple Touch is API 7 (no nav bar); keep this deterministic.
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,

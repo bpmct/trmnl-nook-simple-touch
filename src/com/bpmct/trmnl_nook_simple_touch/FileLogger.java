@@ -15,7 +15,22 @@ public class FileLogger {
     private static final long MAX_SIZE = 512 * 1024; // 512KB max
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
+    private static volatile boolean enabled = false;
+
+    public static void setEnabled(boolean e) { enabled = e; }
+    public static boolean isEnabled() { return enabled; }
+
+    public static void clear() {
+        try {
+            File f = new File(LOG_PATH);
+            if (f.exists()) f.delete();
+            File old = new File(LOG_PATH + ".old");
+            if (old.exists()) old.delete();
+        } catch (Throwable t) { /* ignore */ }
+    }
+
     public static synchronized void log(String tag, String level, String msg) {
+        if (!enabled) return;
         try {
             File f = new File(LOG_PATH);
             // Rotate if too large

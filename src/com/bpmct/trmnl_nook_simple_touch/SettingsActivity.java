@@ -17,6 +17,7 @@ public class SettingsActivity extends Activity {
     private static final int APP_ROTATION_DEGREES = 90;
     private TextView statusView;
     private CheckBox allowSleepCheck;
+    private CheckBox fileLoggingCheck;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -79,6 +80,34 @@ public class SettingsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        TextView loggingLabel = new TextView(this);
+        loggingLabel.setText("Logging");
+        loggingLabel.setTextSize(14);
+        loggingLabel.setTextColor(0xFF000000);
+        LinearLayout.LayoutParams loggingLabelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        loggingLabelParams.topMargin = 20;
+        inner.addView(loggingLabel, loggingLabelParams);
+
+        fileLoggingCheck = new CheckBox(this);
+        fileLoggingCheck.setText("Capture logs to file");
+        fileLoggingCheck.setTextColor(0xFF000000);
+        fileLoggingCheck.setChecked(ApiPrefs.isFileLoggingEnabled(this));
+        inner.addView(fileLoggingCheck, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        Button clearLogsButton = new Button(this);
+        clearLogsButton.setText("Clear Logs");
+        clearLogsButton.setTextColor(0xFF000000);
+        clearLogsButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                FileLogger.clear();
+            }
+        });
+        inner.addView(clearLogsButton);
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
@@ -134,6 +163,7 @@ public class SettingsActivity extends Activity {
             statusView.setText(ApiPrefs.hasCredentials(this) ? "Saved" : "Missing");
         }
         if (allowSleepCheck != null) allowSleepCheck.setChecked(ApiPrefs.isAllowSleep(this));
+        if (fileLoggingCheck != null) fileLoggingCheck.setChecked(ApiPrefs.isFileLoggingEnabled(this));
     }
 
     protected void onPause() {
@@ -143,5 +173,10 @@ public class SettingsActivity extends Activity {
 
     private void saveDisplayPrefs() {
         if (allowSleepCheck != null) ApiPrefs.setAllowSleep(this, allowSleepCheck.isChecked());
+        if (fileLoggingCheck != null) {
+            boolean enabled = fileLoggingCheck.isChecked();
+            ApiPrefs.setFileLoggingEnabled(this, enabled);
+            FileLogger.setEnabled(enabled);
+        }
     }
 }
