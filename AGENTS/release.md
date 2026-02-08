@@ -25,8 +25,9 @@ Suggested guidance to give users:
   ```
   gh release edit v0.1.0 --notes "## What's New
 
-  - **Feature name** - Brief description of the change."
+  - **Feature name** - Brief description of the change, explaining what was wrong and how it's fixed."
   ```
+  Use past tense for fixes ("Fixed X") and describe both the problem and solution.
 
 ## Required GitHub secrets (release signing)
 
