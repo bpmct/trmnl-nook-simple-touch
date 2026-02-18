@@ -18,4 +18,27 @@ for jar in "$MAIN_REPO"/libs/*.jar; do
     fi
 done
 
+# Link prefs folder (device-specific configs, gitignored)
+# This allows sharing device config presets across all worktrees
+PREFS_DIR="$HOME/trmnl-prefs"
+if [ -d "$PREFS_DIR" ] && [ ! -L "prefs" ]; then
+    # User has prefs folder - link it
+    if [ -d "prefs" ]; then
+        # Backup any existing local prefs before linking
+        if [ "$(ls -A prefs/*.args 2>/dev/null)" ]; then
+            echo "Warning: Local prefs configs found - move them to $PREFS_DIR before running init"
+        else
+            rm -rf prefs
+        fi
+    fi
+    ln -sf "$PREFS_DIR" prefs
+    echo "Linked prefs/ from $PREFS_DIR"
+elif [ ! -d "prefs" ]; then
+    # No prefs folder yet - create local folder
+    mkdir -p prefs
+    echo "Created local prefs/ folder (consider using $PREFS_DIR for sharing across worktrees)"
+else
+    echo "prefs/ already configured"
+fi
+
 echo "Worktree setup complete"
