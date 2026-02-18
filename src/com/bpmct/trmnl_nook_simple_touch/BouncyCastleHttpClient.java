@@ -200,8 +200,9 @@ public class BouncyCastleHttpClient {
         
         Log.d(TAG, "BC connecting to " + host + ":" + port + path);
         
-        // Create socket
-        Socket socket = new Socket(host, port);
+        // Create socket with connection timeout
+        Socket socket = new Socket();
+        socket.connect(new java.net.InetSocketAddress(host, port), 20000);
         socket.setSoTimeout(20000);
         
         try {
@@ -231,7 +232,7 @@ public class BouncyCastleHttpClient {
             logRequest("GET", url, headers);
             PrintWriter writer = new PrintWriter(tlsOut, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writeHeaders(writer, headers, host);
+            writeHeaders(writer, headers, host, port, true);
             writer.print("\r\n");
             writer.flush();
             
@@ -357,7 +358,8 @@ public class BouncyCastleHttpClient {
 
         Log.d(TAG, "BC connecting (bytes) to " + host + ":" + port + path);
 
-        Socket socket = new Socket(host, port);
+        Socket socket = new Socket();
+        socket.connect(new java.net.InetSocketAddress(host, port), 20000);
         socket.setSoTimeout(20000);
         try {
             TlsClientProtocol tlsProtocol = new TlsClientProtocol(
@@ -381,7 +383,7 @@ public class BouncyCastleHttpClient {
             logRequest("GET", url, headers);
             PrintWriter writer = new PrintWriter(tlsOut, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writeHeaders(writer, headers, host);
+            writeHeaders(writer, headers, host, port, true);
             writer.print("\r\n");
             writer.flush();
 
@@ -468,7 +470,8 @@ public class BouncyCastleHttpClient {
 
         Log.d(TAG, "HTTP connecting to " + host + ":" + port + path);
 
-        Socket socket = new Socket(host, port);
+        Socket socket = new Socket();
+        socket.connect(new java.net.InetSocketAddress(host, port), 20000);
         socket.setSoTimeout(20000);
         try {
             OutputStream out = socket.getOutputStream();
@@ -477,7 +480,7 @@ public class BouncyCastleHttpClient {
             logRequest("GET", url, headers);
             PrintWriter writer = new PrintWriter(out, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writeHeaders(writer, headers, host);
+            writeHeaders(writer, headers, host, port, false);
             writer.print("\r\n");
             writer.flush();
 
@@ -592,7 +595,8 @@ public class BouncyCastleHttpClient {
 
         Log.d(TAG, "HTTP connecting (bytes) to " + host + ":" + port + path);
 
-        Socket socket = new Socket(host, port);
+        Socket socket = new Socket();
+        socket.connect(new java.net.InetSocketAddress(host, port), 20000);
         socket.setSoTimeout(20000);
         try {
             OutputStream out = socket.getOutputStream();
@@ -601,7 +605,7 @@ public class BouncyCastleHttpClient {
             logRequest("GET", url, headers);
             PrintWriter writer = new PrintWriter(out, true);
             writer.print("GET " + path + " HTTP/1.1\r\n");
-            writeHeaders(writer, headers, host);
+            writeHeaders(writer, headers, host, port, false);
             writer.print("\r\n");
             writer.flush();
 
@@ -685,11 +689,14 @@ public class BouncyCastleHttpClient {
         return new String(line.toByteArray(), "ISO-8859-1");
     }
 
-    private static void writeHeaders(PrintWriter writer, Hashtable headers, String host) {
+    private static void writeHeaders(PrintWriter writer, Hashtable headers, String host, int port, boolean isHttps) {
         boolean hasHost = hasHeader(headers, "Host");
         boolean hasConnection = hasHeader(headers, "Connection");
         if (!hasHost && host != null && host.length() > 0) {
-            writer.print("Host: " + host + "\r\n");
+            // Include port in Host header when non-standard (not 80 for HTTP, not 443 for HTTPS)
+            int defaultPort = isHttps ? 443 : 80;
+            String hostHeader = (port == defaultPort) ? host : (host + ":" + port);
+            writer.print("Host: " + hostHeader + "\r\n");
         }
         if (headers != null) {
             java.util.Enumeration e = headers.keys();

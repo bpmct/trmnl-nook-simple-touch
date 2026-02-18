@@ -24,8 +24,12 @@ adb devices
 Saved file logs (when "Save to file" enabled) live at:
 - `/media/My Files/trmnl.log`
 
-To pull tail:
+To read logs:
 ```bash
+# Using nook-adb.sh wrapper (recommended)
+tools/nook-adb.sh --ip <ip> get-logs [n]  # default: last 200 lines
+
+# Or direct adb command
 adb -s <ip>:5555 shell "tail -n 200 '/media/My Files/trmnl.log'"
 ```
 
@@ -55,15 +59,18 @@ NOOK_IP=<ip> tools/nook-adb.sh build-install-run-logcat
 
 **Other useful commands:**
 - Run logcat in background: `tools/nook-adb.sh logcat` to monitor while testing
+- Read file logs: `tools/nook-adb.sh --ip <ip> get-logs [n]` (default: 200 lines)
 - Device often goes offline when WiFi auto-disabled; use "Auto-disable WiFi" setting OFF during dev
 - ADB reconnect: `tools/nook-adb.sh connect` after device comes back online
 - Clean build: `tools/nook-adb.sh --clean build-install-run`
 
 ### Boot & Error UX
 
-### Prefs presets (SaaS / self-hosted)
+### Prefs presets (SaaS / BYOS)
 
-To switch settings quickly, create local presets in `prefs/` (gitignored). Use one argument per line so the shell doesn't have to parse quoting.
+Device config presets live in `~/trmnl-prefs/` and are shared across all worktrees via symlink (created by `.mux/init`).
+
+To switch settings quickly, create preset files like `~/trmnl-prefs/myserver.args`. Use one argument per line so the shell doesn't have to parse quoting.
 
 Example: `prefs/selfhosted.args`
 

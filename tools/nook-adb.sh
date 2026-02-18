@@ -446,6 +446,7 @@ Commands:
   logcat
   shell
   get-settings           Dump current app settings
+  get-logs [n]           Dump last n lines of device log file (default: 200)
   set-settings --file    Replace app settings from XML file
   set-setting            Update settings by key/value
   set-preset             Apply preset from prefs/<name>.args
@@ -603,6 +604,10 @@ main() {
     get-settings)
       get_settings
       ;;
+    get-logs)
+      get_log "$@"
+      ;;
+
     set-settings)
       local file_path=""
       while [[ $# -gt 0 ]]; do
