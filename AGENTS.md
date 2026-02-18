@@ -38,10 +38,26 @@ adb -s <ip>:5555 shell "tail -n 200 '/media/My Files/trmnl.log'"
 - Image fetches need retry too, not just API calls
 
 ### Testing on Device
-- Use `NOOK_IP=<ip> tools/nook-adb.sh install-run-logcat` for quick test cycles
+
+**Standard workflow for testing changes:**
+
+```bash
+# Always use build-install-run (builds, installs, launches app)
+NOOK_IP=<ip> tools/nook-adb.sh build-install-run
+
+# Or with logcat output:
+NOOK_IP=<ip> tools/nook-adb.sh build-install-run-logcat
+```
+
+**Initial worktree setup:**
+- Run `.mux/init` to symlink `local.properties` and JAR files from main repo
+- This is required for worktrees to build successfully
+
+**Other useful commands:**
 - Run logcat in background: `tools/nook-adb.sh logcat` to monitor while testing
 - Device often goes offline when WiFi auto-disabled; use "Auto-disable WiFi" setting OFF during dev
 - ADB reconnect: `tools/nook-adb.sh connect` after device comes back online
+- Clean build: `tools/nook-adb.sh --clean build-install-run`
 
 ### Boot & Error UX
 

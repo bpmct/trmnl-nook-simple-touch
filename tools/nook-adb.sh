@@ -80,7 +80,7 @@ pick_ant() {
 ANT_BIN="$(pick_ant || true)"
 
 ADB_HOSTPORT=""
-DEVICE_IP="${NOOK_IP:-192.168.1.239}"
+DEVICE_IP="${NOOK_IP:-192.168.1.236}"
 DEVICE_PORT="5555"
 APK_PATH=""
 CIDR=""
@@ -219,7 +219,20 @@ disconnect_device() {
 }
 
 ensure_connected() {
-  connect_device >/dev/null
+  [[ -n "${DEVICE_IP}" ]] || prompt_select_ip "${DEVICE_PORT}"
+  [[ -n "${DEVICE_IP}" ]] || die "no device IP provided"
+
+  "${ADB_BIN}" start-server >/dev/null 2>&1
+  if ! timeout 20s "${ADB_BIN}" connect "$(device_connect_arg)" >/dev/null 2>&1; then
+    die "Failed to connect to device at ${DEVICE_IP}:${DEVICE_PORT} within 20 seconds. Check device is online and ADB-over-TCP is enabled."
+  fi
+}
+
+ensure_connected_fast() {
+  # For operations after initial connection (don't need full reconnect)
+  if ! timeout 5s "${ADB_BIN}" -s "$(device_target)" shell exit 2>/dev/null; then
+    die "Device $(device_target) not responding. Try: tools/nook-adb.sh connect"
+  fi
 }
 
 pick_apk() {
@@ -287,17 +300,20 @@ ant_debug() {
 
 install_apk() {
   ensure_connected
-  local apk tmp_path
+  local apk tmp_path serial
   apk="$(pick_apk)"
   tmp_path="/data/local/tmp/trmnl-nook-simple-touch.apk"
-  adb_target wait-for-device
+  serial="$(device_target)"
+  if ! timeout 5s "${ADB_BIN}" -s "${serial}" wait-for-device; then
+    die "Device not ready within 5s"
+  fi
   adb_target push "${apk}" "${tmp_path}"
   adb_target shell pm install -r "${tmp_path}"
   adb_target shell rm "${tmp_path}" >/dev/null 2>&1 || true
 }
 
 run_app() {
-  ensure_connected
+  ensure_connected_fast
   adb_target shell am start -n "${APP_PKG}/${APP_ACTIVITY}"
 }
 
