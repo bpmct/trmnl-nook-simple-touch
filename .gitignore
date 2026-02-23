@@ -30,3 +30,7 @@ prefs/*.xml
 
 # Scratch / temp artifacts
 tmp_*.txt
+
+# WebUSB ADB site (Node/Vite — not part of Android build)
+site/node_modules/
+site/dist/
