@@ -187,7 +187,7 @@ function setConnectedUI(connected: boolean) {
 // ---------------------------------------------------------------------------
 // Refresh TRMNL app info rows in the device table
 // ---------------------------------------------------------------------------
-async function refreshAppInfo(adbInst: Adb, installed: boolean) {
+async function refreshAppInfo(adbInst: Adb, installed: boolean, cachedPkgLine?: string | null) {
   // Remove any existing app rows first
   deviceInfo.querySelectorAll("tr.app-row").forEach(r => r.remove());
 
@@ -195,15 +195,15 @@ async function refreshAppInfo(adbInst: Adb, installed: boolean) {
   let updateAvailable: { versionName: string; url: string; apkUrl: string | null } | null = null;
 
   if (installed) {
-    // Android 2.1: grep may not be available — try it first, fall back to
-    // reading the full packages.xml and extracting the package line in JS.
-    let pkgsXml = await safeRunCommand(adbInst,
-      `grep "com.bpmct.trmnl" /data/system/packages.xml`
-    );
+    // Use cached packages.xml line if available (avoids re-reading on connect).
+    // On re-check after install, re-read it fresh.
+    let pkgsXml = cachedPkgLine ?? null;
     if (!pkgsXml) {
-      const fullXml = await safeRunCommand(adbInst, `cat /data/system/packages.xml`);
-      const line = fullXml?.split("\n").find(l => l.includes("com.bpmct.trmnl")) ?? null;
-      pkgsXml = line ?? null;
+      pkgsXml = await safeRunCommand(adbInst, `grep "com.bpmct.trmnl" /data/system/packages.xml`);
+      if (!pkgsXml) {
+        const fullXml = await safeRunCommand(adbInst, `cat /data/system/packages.xml`);
+        pkgsXml = fullXml?.split("\n").find(l => l.includes("com.bpmct.trmnl")) ?? null;
+      }
     }
     appendOutput(`# [debug] packages.xml line: ${JSON.stringify(pkgsXml)}\n`);
 
@@ -367,10 +367,13 @@ btnConnect.addEventListener("click", async () => {
     const displayName = [manufacturer, model].filter(Boolean).join(" ");
     appendOutput(`# device: ${displayName}, Android ${androidVer}\n`);
 
-    appendOutput("# Checking TRMNL app… (may take a few seconds)\n");
+    // Skip pm list packages (slow on Android 2.1) — read packages.xml directly.
+    // If the package line exists there, it's installed.
+    appendOutput("# Checking TRMNL app…\n");
     const PACKAGE = "com.bpmct.trmnl_nook_simple_touch";
-    const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`, 20000);
-    const installed = pkgList?.includes(PACKAGE) ?? false;
+    const pkgsXmlQuick = await safeRunCommand(adb, `grep "com.bpmct.trmnl" /data/system/packages.xml`) ??
+      await safeRunCommand(adb, `cat /data/system/packages.xml`).then(x => x?.split("\n").find(l => l.includes("com.bpmct.trmnl")) ?? null);
+    const installed = pkgsXmlQuick?.includes(PACKAGE) ?? false;
     appendOutput(`# installed: ${installed}\n`);
 
     deviceInfo.innerHTML = `
@@ -380,7 +383,7 @@ btnConnect.addEventListener("click", async () => {
         <tr><td>Android</td><td><code>${escHtml(androidVer)}</code></td></tr>
       </table>`;
     deviceInfo.classList.remove("hidden");
-    await refreshAppInfo(adb, installed);
+    await refreshAppInfo(adb, installed, pkgsXmlQuick);
 
     setStatus(true, `Connected — ${displayName}`);
     setConnectedUI(true);
