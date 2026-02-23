@@ -137,11 +137,13 @@ const statusText = document.getElementById("status-text") as HTMLSpanElement;
 const shellSection = document.getElementById("shell-section") as HTMLElement;
 const errorBanner = document.getElementById("error-banner") as HTMLDivElement;
 const quickCmds = document.querySelectorAll<HTMLButtonElement>(".btn-quick");
+const btnInstall = document.getElementById("btn-install") as HTMLButtonElement | null;
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 let adb: Adb | null = null;
+let pendingApkUrl: string | null = null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,6 +172,85 @@ function setConnectedUI(connected: boolean) {
     deviceInfo.innerHTML = "";
     deviceInfo.classList.add("hidden");
     authPrompt.classList.add("hidden");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Refresh TRMNL app info rows in the device table
+// ---------------------------------------------------------------------------
+async function refreshAppInfo(adbInst: Adb, installed: boolean) {
+  // Remove any existing app rows first
+  deviceInfo.querySelectorAll("tr.app-row").forEach(r => r.remove());
+
+  let appVersionName: string | null = null;
+  let updateAvailable: { versionName: string; url: string; apkUrl: string | null } | null = null;
+
+  if (installed) {
+    // Android 2.1: grep the package entry from packages.xml
+    const pkgsXml = await safeRunCommand(adbInst,
+      `grep "com.bpmct.trmnl" /data/system/packages.xml`
+    );
+    appendOutput(`# [debug] packages.xml grep: ${JSON.stringify(pkgsXml)}\n`);
+
+    const versionCode = pkgsXml?.match(/version="(\d+)"/)?.[1] ?? null;
+    appendOutput(`# [debug] versionCode: ${versionCode}\n`);
+
+    if (versionCode) {
+      try {
+        const res = await fetch("/api/releases");
+        const releases = await res.json() as Array<{ versionCode: string; versionName: string; tag: string; url: string; apkUrl: string | null }>;
+        appendOutput(`# [debug] releases fetched: ${releases.length}, codes: ${releases.map(r => r.versionCode).join(", ")}\n`);
+
+        const match = releases.find(r => r.versionCode === versionCode);
+        const latest = releases[0];
+        if (match) {
+          appVersionName = match.versionName;
+          if (match.versionCode !== latest.versionCode) {
+            updateAvailable = { versionName: latest.versionName, url: latest.url, apkUrl: latest.apkUrl };
+          }
+        } else {
+          appVersionName = `build ${versionCode}`;
+        }
+      } catch (e) {
+        appendOutput(`# [debug] releases fetch error: ${e}\n`);
+        appVersionName = versionCode === VERSION_CODE ? VERSION_NAME : `build ${versionCode}`;
+      }
+    } else {
+      appendOutput(`# [debug] could not extract versionCode from grep output\n`);
+    }
+  }
+
+  // Store APK URL for install button
+  pendingApkUrl = updateAvailable?.apkUrl ?? null;
+  if (btnInstall) {
+    if (updateAvailable?.apkUrl) {
+      btnInstall.classList.remove("hidden");
+      btnInstall.disabled = false;
+      btnInstall.textContent = `⬇️ Install v${updateAvailable.versionName}`;
+    } else {
+      btnInstall.classList.add("hidden");
+    }
+  }
+
+  // Append rows to existing table
+  const table = deviceInfo.querySelector("table");
+  if (!table) return;
+  const mkRow = (label: string, html: string) => {
+    const tr = document.createElement("tr");
+    tr.className = "app-row";
+    tr.innerHTML = `<td>${escHtml(label)}</td><td>${html}</td>`;
+    table.appendChild(tr);
+  };
+
+  if (installed) {
+    mkRow("TRMNL app", "✅ installed");
+    mkRow("Version", `<code>${appVersionName ? `v${escHtml(appVersionName)}` : "?"}</code>`);
+    mkRow("Update", updateAvailable
+      ? `<span class="update-badge">⬆ v${escHtml(updateAvailable.versionName)} available</span> <a class="update-link" href="${escHtml(updateAvailable.url)}" target="_blank">release notes</a>`
+      : `<span class="up-to-date">✓ up to date</span>`
+    );
+  } else {
+    mkRow("TRMNL app", "❌ not installed");
   }
 }
 
@@ -240,46 +321,15 @@ btnConnect.addEventListener("click", async () => {
     const PACKAGE = "com.bpmct.trmnl_nook_simple_touch";
     const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`);
     const installed = pkgList?.includes(PACKAGE) ?? false;
-    let appVersion: string | null = null;
-    if (installed) {
-      // Android 2.1 only stores versionCode in /data/system/packages.xml.
-      // Fetch versionCode→versionName mapping from GitHub releases API.
-      const pkgsXml = await safeRunCommand(adb,
-        `grep "com.bpmct.trmnl" /data/system/packages.xml`
-      );
-      const versionCode = pkgsXml?.match(/version="(\d+)"/)?.[1] ?? null;
-      if (versionCode) {
-        try {
-          const res = await fetch("/api/releases");
-          const releases = await res.json() as Array<{ versionCode: string; versionName: string; tag: string; url: string }>;
-          const match = releases.find(r => r.versionCode === versionCode);
-          const latest = releases[0];
-          if (match) {
-            const isLatest = match.versionCode === latest.versionCode;
-            appVersion = isLatest
-              ? match.versionName
-              : `${match.versionName} → <a href="${latest.url}" target="_blank">${latest.versionName} available</a>`;
-          } else {
-            appVersion = `build ${versionCode}`;
-          }
-        } catch {
-          // Fall back to build-time value
-          appVersion = versionCode === VERSION_CODE ? VERSION_NAME : `build ${versionCode}`;
-        }
-      }
-    }
-    const appRow = installed
-      ? `<tr><td>TRMNL app</td><td><code>${appVersion ? `v${appVersion}` : "?"} ✅</code></td></tr>`
-      : `<tr><td>TRMNL app</td><td><code>not installed ❌</code></td></tr>`;
 
     deviceInfo.innerHTML = `
       <table>
         <tr><td>Serial</td><td><code>${escHtml(serial)}</code></td></tr>
         <tr><td>Device</td><td><code>${escHtml(displayName)}</code></td></tr>
         <tr><td>Android</td><td><code>${escHtml(androidVer)}</code></td></tr>
-        ${appRow}
       </table>`;
     deviceInfo.classList.remove("hidden");
+    await refreshAppInfo(adb, installed);
 
     setStatus(true, `Connected — ${displayName}`);
     setConnectedUI(true);
@@ -295,6 +345,82 @@ btnConnect.addEventListener("click", async () => {
     authPrompt.classList.add("hidden");
     btnConnect.disabled = false;
   }
+});
+
+// ---------------------------------------------------------------------------
+// OTA Install — download APK in browser, push via ADB sync, pm install
+// ---------------------------------------------------------------------------
+async function installUpdate(apkUrl: string) {
+  if (!adb) return;
+  const adbInst = adb;
+  const btn = btnInstall;
+  if (btn) { btn.disabled = true; btn.textContent = "Downloading…"; }
+  appendOutput("\n# Starting OTA update…\n");
+
+  try {
+    // 1. Download APK via dev-server proxy (avoids CORS + S3 redirect issues)
+    const proxyUrl = `/api/download?url=${encodeURIComponent(apkUrl)}`;
+    appendOutput(`# Downloading APK from GitHub…\n`);
+    const resp = await fetch(proxyUrl);
+    if (!resp.ok) throw new Error(`Download failed: HTTP ${resp.status}`);
+    const apkBytes = new Uint8Array(await resp.arrayBuffer());
+    appendOutput(`# Downloaded ${(apkBytes.byteLength / 1024 / 1024).toFixed(1)} MB\n`);
+
+    // 2. Push APK to device via ADB sync
+    const REMOTE_PATH = "/data/local/tmp/trmnl_update.apk";
+    appendOutput(`# Pushing to ${REMOTE_PATH}…\n`);
+    if (btn) btn.textContent = "Pushing to device…";
+
+    const sync = await adbInst.sync();
+    try {
+      // Wrap Uint8Array in a native ReadableStream<Uint8Array> for AdbSync.write()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fileStream = new ReadableStream<any>({
+        start(controller) {
+          controller.enqueue(apkBytes);
+          controller.close();
+        }
+      });
+      await sync.write({
+        filename: REMOTE_PATH,
+        file: fileStream as unknown as import("@yume-chan/stream-extra").ReadableStream<import("@yume-chan/stream-extra").MaybeConsumable<Uint8Array>>,
+        permission: 0o644,
+      });
+    } finally {
+      await sync.dispose();
+    }
+    appendOutput(`# Push complete\n`);
+
+    // 3. Install via pm install
+    if (btn) btn.textContent = "Installing…";
+    appendOutput(`# Running pm install…\n`);
+    const result = await safeRunCommand(adbInst, `pm install -r ${REMOTE_PATH}`);
+    appendOutput(`${result ?? "(no output)"}\n`);
+
+    // 4. Cleanup
+    await safeRunCommand(adbInst, `rm ${REMOTE_PATH}`);
+
+    if (result?.includes("Success")) {
+      appendOutput(`# ✅ Install successful! Verifying version…\n`);
+      if (btn) btn.textContent = "Verifying…";
+      // Re-check installed version to confirm and update the info table
+      await refreshAppInfo(adbInst, true);
+      appendOutput(`# Version check complete.\n`);
+      if (btn) btn.textContent = "✅ Installed";
+    } else {
+      appendOutput(`# ⚠️ pm install may have failed — check output above.\n`);
+      if (btn) { btn.disabled = false; btn.textContent = "Retry Install"; }
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendOutput(`# ❌ Install failed: ${msg}\n`);
+    showError(`Install failed: ${msg}`);
+    if (btn) { btn.disabled = false; btn.textContent = "Retry Install"; }
+  }
+}
+
+btnInstall?.addEventListener("click", () => {
+  if (pendingApkUrl) installUpdate(pendingApkUrl);
 });
 
 // ---------------------------------------------------------------------------

@@ -210,6 +210,56 @@ header {
   color: var(--term-green);
 }
 
+/* ── Update badge / up-to-date pill ─────────────────────────────────────── */
+
+.update-badge {
+  display: inline-block;
+  background: #2d1f02;
+  border: 1px solid var(--yellow);
+  color: #e3b341;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.update-link {
+  color: var(--accent);
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-left: 6px;
+}
+
+.update-link:hover {
+  opacity: 1;
+}
+
+.up-to-date {
+  color: var(--green);
+  font-size: 0.82rem;
+}
+
+/* ── Install update button ───────────────────────────────────────────────── */
+
+.btn.btn-install {
+  background: #1a2d1a;
+  color: var(--green);
+  border-color: var(--green);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.btn.btn-install:not(:disabled):hover {
+  background: #213521;
+  filter: none;
+}
+
+.btn.btn-install:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* ── Auth prompt ─────────────────────────────────────────────────────────── */
 
 .auth-prompt {
