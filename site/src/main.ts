@@ -305,42 +305,45 @@ btnConnect.addEventListener("click", async () => {
       );
     }
 
-    // Build credential store (RSA key in IndexedDB)
+    appendOutput("# Building credential store…\n");
     const credentialStore = await buildCredentialStore();
+    appendOutput("# Credential store ready\n");
 
-    // Use the static BROWSER instance (already checks navigator.usb)
     const manager = AdbWebUsbBackendManager.BROWSER;
     if (!manager) {
       throw new Error("WebUSB not available — use Chrome or Edge.");
     }
 
-    // requestDevice() returns undefined if user cancels (no throw)
+    appendOutput("# Opening device picker…\n");
     const device = await manager.requestDevice();
     if (!device) {
+      appendOutput("# Picker cancelled\n");
       setStatus(false, "Disconnected");
       btnConnect.disabled = false;
       return;
     }
 
+    appendOutput(`# Device selected: ${device.serial}\n`);
     setStatus(false, "Connecting…");
     authPrompt.classList.remove("hidden");
 
-    // Connect — this performs ADB handshake + RSA key auth
+    appendOutput("# Establishing USB connection…\n");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const connection = await device.connect() as any;
+    appendOutput("# USB connected — authenticating…\n");
 
     const transport = await AdbDaemonTransport.authenticate({
       serial: device.serial,
       connection,
       credentialStore,
     });
+    appendOutput("# ADB authenticated\n");
 
     authPrompt.classList.add("hidden");
 
     adb = new Adb(transport);
 
     // Watch for unexpected USB disconnects (transferIn/transferOut NetworkError)
-    // The transport's disconnected promise rejects when the USB link drops.
     transport.disconnected.then(() => {
       if (adb) handleUnexpectedDisconnect("Device disconnected");
     }).catch((err: unknown) => {
@@ -383,6 +386,7 @@ btnConnect.addEventListener("click", async () => {
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
+    appendOutput(`\n# ❌ Connection failed: ${msg}\n`);
     showError(msg);
     console.error(err);
     setStatus(false, "Connection failed");
