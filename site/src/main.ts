@@ -164,6 +164,15 @@ function appendOutput(text: string) {
   output.scrollTop = output.scrollHeight;
 }
 
+function handleUnexpectedDisconnect(reason: string) {
+  if (!adb) return; // already handled
+  adb = null;
+  setStatus(false, "Disconnected");
+  setConnectedUI(false);
+  appendOutput(`\n# ⚠️ USB connection lost: ${reason}\n# Unplug and reconnect, then click Connect.\n`);
+  showError(`USB disconnected: ${reason}`);
+}
+
 function setConnectedUI(connected: boolean) {
   btnConnect.disabled = connected;
   btnDisconnect.disabled = !connected;
@@ -186,11 +195,17 @@ async function refreshAppInfo(adbInst: Adb, installed: boolean) {
   let updateAvailable: { versionName: string; url: string; apkUrl: string | null } | null = null;
 
   if (installed) {
-    // Android 2.1: grep the package entry from packages.xml
-    const pkgsXml = await safeRunCommand(adbInst,
+    // Android 2.1: grep may not be available — try it first, fall back to
+    // reading the full packages.xml and extracting the package line in JS.
+    let pkgsXml = await safeRunCommand(adbInst,
       `grep "com.bpmct.trmnl" /data/system/packages.xml`
     );
-    appendOutput(`# [debug] packages.xml grep: ${JSON.stringify(pkgsXml)}\n`);
+    if (!pkgsXml) {
+      const fullXml = await safeRunCommand(adbInst, `cat /data/system/packages.xml`);
+      const line = fullXml?.split("\n").find(l => l.includes("com.bpmct.trmnl")) ?? null;
+      pkgsXml = line ?? null;
+    }
+    appendOutput(`# [debug] packages.xml line: ${JSON.stringify(pkgsXml)}\n`);
 
     const versionCode = pkgsXml?.match(/version="(\d+)"/)?.[1] ?? null;
     appendOutput(`# [debug] versionCode: ${versionCode}\n`);
@@ -323,6 +338,15 @@ btnConnect.addEventListener("click", async () => {
     authPrompt.classList.add("hidden");
 
     adb = new Adb(transport);
+
+    // Watch for unexpected USB disconnects (transferIn/transferOut NetworkError)
+    // The transport's disconnected promise rejects when the USB link drops.
+    transport.disconnected.then(() => {
+      if (adb) handleUnexpectedDisconnect("Device disconnected");
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      handleUnexpectedDisconnect(msg);
+    });
 
     // Show device info — NOOK uses ro.product.overall.name, not ro.product.model
     const model =
