@@ -221,14 +221,34 @@ async function refreshAppInfo(adbInst: Adb, installed: boolean) {
   }
 
   // Store APK URL for install button
-  pendingApkUrl = updateAvailable?.apkUrl ?? null;
-  if (btnInstall) {
-    if (updateAvailable?.apkUrl) {
-      btnInstall.classList.remove("hidden");
-      btnInstall.disabled = false;
-      btnInstall.textContent = `⬇️ Install v${updateAvailable.versionName}`;
-    } else {
-      btnInstall.classList.add("hidden");
+  if (installed) {
+    pendingApkUrl = updateAvailable?.apkUrl ?? null;
+    if (btnInstall) {
+      if (updateAvailable?.apkUrl) {
+        btnInstall.classList.remove("hidden");
+        btnInstall.disabled = false;
+        btnInstall.textContent = "Install v" + updateAvailable.versionName;
+      } else {
+        btnInstall.classList.add("hidden");
+      }
+    }
+  } else {
+    // Not installed — fetch latest release and offer fresh install
+    pendingApkUrl = null;
+    try {
+      const res = await fetch("/api/releases");
+      const releases = await res.json() as Array<{ versionCode: string; versionName: string; tag: string; url: string; apkUrl: string | null }>;
+      const latest = releases[0];
+      if (latest?.apkUrl) {
+        pendingApkUrl = latest.apkUrl;
+        if (btnInstall) {
+          btnInstall.classList.remove("hidden");
+          btnInstall.disabled = false;
+          btnInstall.textContent = "Install v" + latest.versionName;
+        }
+      }
+    } catch {
+      // no releases available, leave button hidden
     }
   }
 
@@ -403,7 +423,7 @@ async function installUpdate(apkUrl: string) {
     if (result?.includes("Success")) {
       appendOutput(`# ✅ Install successful! Verifying version…\n`);
       if (btn) btn.textContent = "Verifying…";
-      // Re-check installed version to confirm and update the info table
+      // Re-check installed version to confirm and update the info table (always true now)
       await refreshAppInfo(adbInst, true);
       appendOutput(`# Version check complete.\n`);
       if (btn) btn.textContent = "✅ Installed";
