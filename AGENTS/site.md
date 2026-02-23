@@ -86,15 +86,66 @@ Android 2.1's `dumpsys package` does **not** include `versionName`.
 `/data/system/packages.xml` has `version=` which is `versionCode`, not `versionName`.
 No binary tools (`strings`, `aapt`) are available on the device.
 
-**Solution:** Vite plugin (`vite.config.ts`) reads `../AndroidManifest.xml` at build time
-and exposes `VERSION_CODE` + `VERSION_NAME` as a virtual module `virtual:android-version`.
-At runtime, compare device versionCode against the baked-in value.
+**Solution:** Two-part system:
+
+1. **Vite plugin** (`vite.config.ts`) reads `../AndroidManifest.xml` at build time,
+   exposes `VERSION_CODE` + `VERSION_NAME` as virtual module `virtual:android-version`.
+
+2. **`/api/releases` dev-server middleware** fetches GitHub releases API server-side
+   (avoids CORS/rate limits), fetches each tag's `AndroidManifest.xml` from
+   `raw.githubusercontent.com` to extract `versionCode`, returns JSON array:
+   `[{ tag, versionCode, versionName, url, publishedAt, apkUrl }]`
+
+At runtime, read `versionCode` from `packages.xml`, match against `/api/releases`,
+show version name and update badge if outdated.
+
+**Known versionCodes:**
+- `v0.8.0` → `80099` (latest as of Feb 2026)
+- `v0.7.0` → `70099`
+- `v0.6.2` → `60299`
+
+## Install check — do NOT use `pm list packages`
+
+`pm list packages` on Android 2.1 takes **~30 seconds** — avoid it entirely.
+
+**Instead:** read `/data/system/packages.xml` directly:
+```bash
+grep "com.bpmct.trmnl" /data/system/packages.xml
+```
+If `grep` isn't available (varies by firmware), fall back to `cat` + JS string search.
+The package line contains both the install status and `version="XXXXX"` (versionCode).
+
+## OTA install flow
+
+Browser downloads APK from GitHub via `/api/download?url=...` proxy (handles CORS + S3
+redirects). Pushed to device via `adb.sync().write()`, then installed with `pm install -r`.
+
+```
+/api/download  →  fetch from GitHub  →  Uint8Array in browser
+adb.sync().write({ filename: "/data/local/tmp/trmnl_update.apk", file: stream })
+safeRunCommand(adb, "pm install -r /data/local/tmp/trmnl_update.apk", 90000)
+```
+
+**`pm install` output is swallowed** by pty mode on Android 2.1 — do NOT check output
+for "Success". Instead verify by re-reading `packages.xml` after install.
+
+## USB disconnect resilience
+
+`transport.disconnected` is a `Promise<void>` getter on `AdbDaemonTransport`.
+Watch it to catch `transferIn`/`transferOut` `NetworkError` when cable is pulled:
 
 ```ts
-import { VERSION_CODE, VERSION_NAME } from "virtual:android-version";
-// if device versionCode === VERSION_CODE → show VERSION_NAME
-// else → show "build XXXXX (current: VERSION_NAME)"
+transport.disconnected
+  .then(() => handleUnexpectedDisconnect("Device disconnected"))
+  .catch((err) => handleUnexpectedDisconnect(err.message));
 ```
+
+## `safeRunCommand` timeout
+
+Always pass a `timeoutMs` argument — the default is 10s. Use longer for slow operations:
+- `packages.xml` grep: default 10s (fast)
+- `pm install`: 90s (can be slow on Android 2.1)
+- Post-install `pm list packages` verify: 20s
 
 ## App prefs file
 
