@@ -367,9 +367,9 @@ btnConnect.addEventListener("click", async () => {
     const displayName = [manufacturer, model].filter(Boolean).join(" ");
     appendOutput(`# device: ${displayName}, Android ${androidVer}\n`);
 
-    appendOutput("# Checking TRMNL app…\n");
+    appendOutput("# Checking TRMNL app… (may take a few seconds)\n");
     const PACKAGE = "com.bpmct.trmnl_nook_simple_touch";
-    const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`);
+    const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`, 20000);
     const installed = pkgList?.includes(PACKAGE) ?? false;
     appendOutput(`# installed: ${installed}\n`);
 
@@ -444,23 +444,29 @@ async function installUpdate(apkUrl: string) {
     appendOutput(`# Push complete\n`);
 
     // 3. Install via pm install
-    if (btn) btn.textContent = "Installing…";
-    appendOutput(`# Running pm install…\n`);
-    const result = await safeRunCommand(adbInst, `pm install -r ${REMOTE_PATH}`);
-    appendOutput(`${result ?? "(no output)"}\n`);
+    // Android 2.1 pty mode may swallow pm install output — give it 60s and
+    // verify success by re-checking pm list packages rather than parsing output.
+    if (btn) btn.textContent = "Installing… (may take ~30s)";
+    appendOutput(`# Running pm install… (may take ~30s)\n`);
+    const result = await safeRunCommand(adbInst, `pm install -r ${REMOTE_PATH}`, 90000);
+    appendOutput(`# pm install output: ${result ?? "(none)"}\n`);
 
     // 4. Cleanup
     await safeRunCommand(adbInst, `rm ${REMOTE_PATH}`);
 
-    if (result?.includes("Success")) {
-      appendOutput(`# ✅ Install successful! Verifying version…\n`);
+    // Verify by checking pm list packages — more reliable than parsing pm output on Android 2.1
+    appendOutput(`# Verifying install…\n`);
+    const pkgCheck = await safeRunCommand(adbInst, `pm list packages com.bpmct.trmnl_nook_simple_touch`, 20000);
+    const verified = pkgCheck?.includes("com.bpmct.trmnl_nook_simple_touch") ?? false;
+
+    if (verified) {
+      appendOutput(`# ✅ Install verified! Checking version…\n`);
       if (btn) btn.textContent = "Verifying…";
-      // Re-check installed version to confirm and update the info table (always true now)
       await refreshAppInfo(adbInst, true);
       appendOutput(`# Version check complete.\n`);
       if (btn) btn.textContent = "✅ Installed";
     } else {
-      appendOutput(`# ⚠️ pm install may have failed — check output above.\n`);
+      appendOutput(`# ⚠️ Package not found after install — it may have failed.\n`);
       if (btn) { btn.disabled = false; btn.textContent = "Retry Install"; }
     }
   } catch (err: unknown) {
