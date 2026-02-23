@@ -12,6 +12,12 @@
  */
 
 import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
+import { VERSION_CODE, VERSION_NAME } from "virtual:android-version";
+
+// Hide the browser warning if WebUSB is supported
+if (navigator.usb) {
+  document.getElementById("browser-warning")?.classList.add("hidden");
+}
 import { AdbWebUsbBackendManager } from "@yume-chan/adb-backend-webusb";
 
 // ---------------------------------------------------------------------------
@@ -217,26 +223,56 @@ btnConnect.addEventListener("click", async () => {
 
     adb = new Adb(transport);
 
-    // Show device info
+    // Show device info — NOOK uses ro.product.overall.name, not ro.product.model
     const model =
-      (await safeGetProp(adb, "ro.product.model")) ?? "Unknown model";
+      (await safeGetProp(adb, "ro.product.overall.name")) ??
+      (await safeGetProp(adb, "ro.product.name")) ??
+      (await safeGetProp(adb, "ro.product.model")) ??
+      "Unknown model";
+    const manufacturer =
+      (await safeGetProp(adb, "ro.product.manufacturer")) ?? "";
     const androidVer =
       (await safeGetProp(adb, "ro.build.version.release")) ?? "?";
     const serial = transport.serial;
+    const displayName = [manufacturer, model].filter(Boolean).join(" ");
+
+    // Detect TRMNL app install + version
+    const PACKAGE = "com.bpmct.trmnl_nook_simple_touch";
+    const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`);
+    const installed = pkgList?.includes(PACKAGE) ?? false;
+    let appVersion: string | null = null;
+    if (installed) {
+      // Android 2.1 only stores versionCode in /data/system/packages.xml.
+      // Fetch versionCode→versionName mapping from GitHub releases API.
+      const pkgsXml = await safeRunCommand(adb,
+        `grep "com.bpmct.trmnl" /data/system/packages.xml`
+      );
+      const versionCode = pkgsXml?.match(/version="(\d+)"/)?.[1] ?? null;
+      if (versionCode) {
+        // Match against version baked in at build time from AndroidManifest.xml
+        appVersion = versionCode === VERSION_CODE
+          ? VERSION_NAME
+          : `build ${versionCode} (current: ${VERSION_NAME})`;
+      }
+    }
+    const appRow = installed
+      ? `<tr><td>TRMNL app</td><td><code>v${escHtml(appVersion ?? "?")} ✅</code></td></tr>`
+      : `<tr><td>TRMNL app</td><td><code>not installed ❌</code></td></tr>`;
 
     deviceInfo.innerHTML = `
       <table>
         <tr><td>Serial</td><td><code>${escHtml(serial)}</code></td></tr>
-        <tr><td>Model</td><td><code>${escHtml(model)}</code></td></tr>
+        <tr><td>Device</td><td><code>${escHtml(displayName)}</code></td></tr>
         <tr><td>Android</td><td><code>${escHtml(androidVer)}</code></td></tr>
+        ${appRow}
       </table>`;
     deviceInfo.classList.remove("hidden");
 
-    setStatus(true, `Connected — ${model}`);
+    setStatus(true, `Connected — ${displayName}`);
     setConnectedUI(true);
 
     appendOutput(
-      `# Connected to ${serial} (${model}, Android ${androidVer})\n# Type a command above and press Run, or use the quick buttons.\n\n`
+      `# Connected to ${serial} (${displayName}, Android ${androidVer})\n# Type a command above and press Run, or use the quick buttons.\n\n`
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -318,6 +354,7 @@ async function runCommand(cmd: string) {
     showError(msg);
   } finally {
     btnRun.disabled = false;
+    cmdInput.value = "";
     cmdInput.focus();
   }
 }
@@ -344,6 +381,42 @@ quickCmds.forEach((btn) => {
 // Utilities
 // ---------------------------------------------------------------------------
 
+async function safeRunCommand(adb: Adb, cmd: string): Promise<string | null> {
+  try {
+    const shellSvc = adb.subprocess.shellProtocol;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let outputStream: any;
+    if (shellSvc && shellSvc.isSupported) {
+      const proc = await shellSvc.spawn(cmd);
+      outputStream = proc.stdout;
+    } else {
+      const proc = await adb.subprocess.noneProtocol.pty(cmd);
+      outputStream = proc.output;
+    }
+    const chunks: Uint8Array[] = [];
+    const reader = outputStream.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const text = new TextDecoder().decode(
+      chunks.reduce((acc, c) => {
+        const merged = new Uint8Array(acc.length + c.length);
+        merged.set(acc); merged.set(c, acc.length);
+        return merged;
+      }, new Uint8Array())
+    );
+    return text.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function safeGetProp(adb: Adb, prop: string): Promise<string | null> {
   try {
     const shellSvc = adb.subprocess.shellProtocol;
@@ -353,6 +426,7 @@ async function safeGetProp(adb: Adb, prop: string): Promise<string | null> {
       const proc = await shellSvc.spawn(`getprop ${prop}`);
       outputStream = proc.stdout;
     } else {
+      // pty() on Android 2.x may include a trailing shell prompt — we strip it below
       const proc = await adb.subprocess.noneProtocol.pty(`getprop ${prop}`);
       outputStream = proc.output;
     }

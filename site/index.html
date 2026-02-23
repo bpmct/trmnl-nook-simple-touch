@@ -19,7 +19,7 @@
         </div>
       </header>
 
-      <div class="browser-warning">
+      <div id="browser-warning" class="browser-warning">
         ⚠️ <strong>Chrome or Edge required.</strong> WebUSB is not supported in Firefox or Safari.
         The device must have ADB enabled (Settings → Device Options → ADB Debugging).
       </div>
@@ -47,13 +47,14 @@
         </div>
         <div class="quick-cmds">
           <span class="label">Quick:</span>
-          <button class="btn-quick" data-cmd="getprop ro.product.model">model</button>
-          <button class="btn-quick" data-cmd="getprop ro.build.version.release">android ver</button>
-          <button class="btn-quick" data-cmd="getprop ro.serialno">serial</button>
+          <button class="btn-quick" data-cmd="cat /data/data/com.bpmct.trmnl_nook_simple_touch/shared_prefs/trmnl_prefs.xml">trmnl prefs</button>
+          <button class="btn-quick" data-cmd="cat /media/My Files/trmnl.log">trmnl log</button>
+          <button class="btn-quick" data-cmd="ps | grep trmnl">trmnl ps</button>
+          <button class="btn-quick" data-cmd="logcat -d -s TRMNLAPI:V BCHttpClient:V *:E">trmnl logcat</button>
           <button class="btn-quick" data-cmd="uptime">uptime</button>
-          <button class="btn-quick" data-cmd="df -h">disk</button>
+          <button class="btn-quick" data-cmd="df">disk</button>
           <button class="btn-quick" data-cmd="cat /proc/meminfo | head -5">mem</button>
-          <button class="btn-quick" data-cmd="ls /sdcard/">ls sdcard</button>
+          <button class="btn-quick" data-cmd="ifconfig tiwlan0">wifi</button>
           <button class="btn-quick" data-cmd="logcat -d -t 30">logcat (30)</button>
         </div>
         <pre id="output" class="output"></pre>
