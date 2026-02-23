@@ -249,14 +249,27 @@ btnConnect.addEventListener("click", async () => {
       );
       const versionCode = pkgsXml?.match(/version="(\d+)"/)?.[1] ?? null;
       if (versionCode) {
-        // Match against version baked in at build time from AndroidManifest.xml
-        appVersion = versionCode === VERSION_CODE
-          ? VERSION_NAME
-          : `build ${versionCode} (current: ${VERSION_NAME})`;
+        try {
+          const res = await fetch("/api/releases");
+          const releases = await res.json() as Array<{ versionCode: string; versionName: string; tag: string; url: string }>;
+          const match = releases.find(r => r.versionCode === versionCode);
+          const latest = releases[0];
+          if (match) {
+            const isLatest = match.versionCode === latest.versionCode;
+            appVersion = isLatest
+              ? match.versionName
+              : `${match.versionName} → <a href="${latest.url}" target="_blank">${latest.versionName} available</a>`;
+          } else {
+            appVersion = `build ${versionCode}`;
+          }
+        } catch {
+          // Fall back to build-time value
+          appVersion = versionCode === VERSION_CODE ? VERSION_NAME : `build ${versionCode}`;
+        }
       }
     }
     const appRow = installed
-      ? `<tr><td>TRMNL app</td><td><code>v${escHtml(appVersion ?? "?")} ✅</code></td></tr>`
+      ? `<tr><td>TRMNL app</td><td><code>${appVersion ? `v${appVersion}` : "?"} ✅</code></td></tr>`
       : `<tr><td>TRMNL app</td><td><code>not installed ❌</code></td></tr>`;
 
     deviceInfo.innerHTML = `
