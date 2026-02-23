@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebUSB ADB — NOOK Simple Touch</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="header-left">
+          <span class="logo">⚡ WebUSB ADB</span>
+          <span class="subtitle">NOOK Simple Touch / Android ADB over USB</span>
+        </div>
+        <div class="status-bar">
+          <span id="status-dot" class="dot disconnected"></span>
+          <span id="status-text">Disconnected</span>
+        </div>
+      </header>
+
+      <div class="browser-warning">
+        ⚠️ <strong>Chrome or Edge required.</strong> WebUSB is not supported in Firefox or Safari.
+        The device must have ADB enabled (Settings → Device Options → ADB Debugging).
+      </div>
+
+      <section id="connect-section" class="card">
+        <h2>Connection</h2>
+        <div class="row">
+          <button id="btn-connect" class="btn primary">🔌 Connect Device</button>
+          <button id="btn-disconnect" class="btn danger" disabled>⏏ Disconnect</button>
+        </div>
+        <div id="device-info" class="device-info hidden"></div>
+        <div id="auth-prompt" class="auth-prompt hidden">
+          <p>🔑 <strong>ADB authorization required.</strong></p>
+          <p>Check the device screen — tap <em>Allow</em> to authorize this computer.</p>
+          <p class="hint">If no dialog appears, the key may already be trusted. Waiting…</p>
+        </div>
+      </section>
+
+      <section id="shell-section" class="card" style="display:none">
+        <h2>Shell</h2>
+        <div class="row">
+          <input id="cmd-input" type="text" class="cmd-input" placeholder="shell command…" spellcheck="false" />
+          <button id="btn-run" class="btn primary">▶ Run</button>
+          <button id="btn-clear" class="btn secondary">✕ Clear</button>
+        </div>
+        <div class="quick-cmds">
+          <span class="label">Quick:</span>
+          <button class="btn-quick" data-cmd="getprop ro.product.model">model</button>
+          <button class="btn-quick" data-cmd="getprop ro.build.version.release">android ver</button>
+          <button class="btn-quick" data-cmd="getprop ro.serialno">serial</button>
+          <button class="btn-quick" data-cmd="uptime">uptime</button>
+          <button class="btn-quick" data-cmd="df -h">disk</button>
+          <button class="btn-quick" data-cmd="cat /proc/meminfo | head -5">mem</button>
+          <button class="btn-quick" data-cmd="ls /sdcard/">ls sdcard</button>
+          <button class="btn-quick" data-cmd="logcat -d -t 30">logcat (30)</button>
+        </div>
+        <pre id="output" class="output"></pre>
+      </section>
+
+      <div id="error-banner" class="error-banner hidden"></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
