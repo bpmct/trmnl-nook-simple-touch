@@ -352,22 +352,26 @@ btnConnect.addEventListener("click", async () => {
     });
 
     // Show device info — NOOK uses ro.product.overall.name, not ro.product.model
+    appendOutput("# Reading device props…\n");
+    const serial = transport.serial;
     const model =
       (await safeGetProp(adb, "ro.product.overall.name")) ??
       (await safeGetProp(adb, "ro.product.name")) ??
       (await safeGetProp(adb, "ro.product.model")) ??
       "Unknown model";
+    appendOutput(`# model: ${model}\n`);
     const manufacturer =
       (await safeGetProp(adb, "ro.product.manufacturer")) ?? "";
     const androidVer =
       (await safeGetProp(adb, "ro.build.version.release")) ?? "?";
-    const serial = transport.serial;
     const displayName = [manufacturer, model].filter(Boolean).join(" ");
+    appendOutput(`# device: ${displayName}, Android ${androidVer}\n`);
 
-    // Detect TRMNL app install + version
+    appendOutput("# Checking TRMNL app…\n");
     const PACKAGE = "com.bpmct.trmnl_nook_simple_touch";
     const pkgList = await safeRunCommand(adb, `pm list packages ${PACKAGE}`);
     const installed = pkgList?.includes(PACKAGE) ?? false;
+    appendOutput(`# installed: ${installed}\n`);
 
     deviceInfo.innerHTML = `
       <table>
@@ -568,7 +572,7 @@ quickCmds.forEach((btn) => {
 // Utilities
 // ---------------------------------------------------------------------------
 
-async function safeRunCommand(adb: Adb, cmd: string): Promise<string | null> {
+async function safeRunCommand(adb: Adb, cmd: string, timeoutMs = 10000): Promise<string | null> {
   try {
     const shellSvc = adb.subprocess.shellProtocol;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -582,9 +586,15 @@ async function safeRunCommand(adb: Adb, cmd: string): Promise<string | null> {
     }
     const chunks: Uint8Array[] = [];
     const reader = outputStream.getReader();
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd}`)), timeoutMs)
+    );
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await Promise.race([
+          reader.read(),
+          timeout,
+        ]);
         if (done) break;
         chunks.push(value);
       }
