@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.delay = void 0;
+function delay(time) {
+    return new Promise(function (resolve) {
+        globalThis.setTimeout(function () { return resolve(); }, time);
+    });
+}
+exports.delay = delay;
+//# sourceMappingURL=delay.js.map

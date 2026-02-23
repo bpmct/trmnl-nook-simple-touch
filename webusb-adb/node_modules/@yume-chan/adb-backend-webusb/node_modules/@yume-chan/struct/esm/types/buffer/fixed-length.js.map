@@ -1,0 +1,1 @@
+{"version":3,"file":"fixed-length.js","sourceRoot":"","sources":["../../../src/types/buffer/fixed-length.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,yBAAyB,EAAE,MAAM,WAAW,CAAC;AAMtD,MAAM,OAAO,oCAIX,SAAQ,yBAAkE;IACjE,OAAO;QACV,OAAO,IAAI,CAAC,OAAO,CAAC,MAAM,CAAC;IAC/B,CAAC;CACJ"}

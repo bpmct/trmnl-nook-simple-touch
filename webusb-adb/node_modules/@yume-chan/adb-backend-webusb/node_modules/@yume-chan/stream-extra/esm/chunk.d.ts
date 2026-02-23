@@ -1,0 +1,8 @@
+import { TransformStream } from "../src/stream.js";
+export declare class DistributionStream extends TransformStream<
+    Uint8Array,
+    Uint8Array
+> {
+    constructor(size: number, combine?: boolean);
+}
+//# sourceMappingURL=chunk.d.ts.map

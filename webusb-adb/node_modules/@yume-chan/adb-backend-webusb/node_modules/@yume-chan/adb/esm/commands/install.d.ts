@@ -1,0 +1,10 @@
+import type { ReadableStream } from "@yume-chan/stream-extra";
+import type { Adb } from "../adb.js";
+/**
+ * Install an apk file to the device.
+ * @param adb An Adb instance
+ * @returns A writable stream that accepts an APK file
+ * @deprecated Use `PackageManager#installStream` from `@yume-chan/android-bin` package instead.
+ */
+export declare function install(adb: Adb, file: ReadableStream<Uint8Array>): Promise<void>;
+//# sourceMappingURL=install.d.ts.map

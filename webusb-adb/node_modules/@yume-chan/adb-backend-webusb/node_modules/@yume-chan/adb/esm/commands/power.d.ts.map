@@ -1,0 +1,1 @@
+{"version":3,"file":"power.d.ts","sourceRoot":"","sources":["../../src/commands/power.ts"],"names":[],"mappings":"AAKA,OAAO,EAAE,cAAc,EAAE,MAAM,WAAW,CAAC;AAE3C,qBAAa,QAAS,SAAQ,cAAc;IACjC,MAAM,CAAC,IAAI,SAAK;IAIhB,UAAU;IAIV,QAAQ;IAIR,QAAQ;IAIR,QAAQ;IAIf;;;;OAIG;IACI,eAAe;IAIf,QAAQ;IAIR,WAAW,CAAC,SAAS,UAAQ;IAQpC;;;;OAIG;IACI,WAAW;CAGrB"}

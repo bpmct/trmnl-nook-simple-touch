@@ -1,0 +1,1 @@
+{"version":3,"file":"wrap-writable.d.ts","sourceRoot":"","sources":["../../src/maybe-consumable/wrap-writable.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,wBAAwB,CAAC;AAC9D,OAAO,EAAE,cAAc,EAAE,MAAM,cAAc,CAAC;AAI9C,qBAAa,iCAAiC,CAAC,CAAC,CAAE,SAAQ,cAAc,CACpE,eAAe,CAAC,CAAC,CAAC,CACrB;gBACe,MAAM,EAAE,cAAc,CAAC,CAAC,CAAC;CAcxC"}

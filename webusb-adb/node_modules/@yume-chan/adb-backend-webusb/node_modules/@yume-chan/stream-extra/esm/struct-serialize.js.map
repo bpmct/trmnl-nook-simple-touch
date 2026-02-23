@@ -1,0 +1,1 @@
+{"version":3,"file":"struct-serialize.js","sourceRoot":"","sources":["../src/struct-serialize.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,eAAe,EAAE,MAAM,aAAa,CAAC;AAE9C,MAAM,OAAO,qBAEX,SAAQ,eAAuC;IAC7C,YAAY,MAAS;QACjB,KAAK,CAAC;YACF,SAAS,CAAC,KAAK,EAAE,UAAU;gBACvB,UAAU,CAAC,OAAO,CAAC,MAAM,CAAC,SAAS,CAAC,KAAK,CAAC,CAAC,CAAC;YAChD,CAAC;SACJ,CAAC,CAAC;IACP,CAAC;CACJ"}

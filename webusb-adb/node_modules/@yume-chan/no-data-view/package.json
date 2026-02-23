@@ -1,0 +1,40 @@
+{
+  "name": "@yume-chan/no-data-view",
+  "version": "2.0.0",
+  "description": "Plain methods to avoid creating `DataView`s",
+  "keywords": [],
+  "license": "MIT",
+  "author": {
+    "name": "Simon Chan",
+    "email": "cnsimonchan@live.com",
+    "url": "https://chensi.moe/blog"
+  },
+  "homepage": "https://github.com/yume-chan/ya-webadb/tree/main/packages/no-data-view#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yume-chan/ya-webadb.git",
+    "directory": "packages/no-data-view"
+  },
+  "bugs": {
+    "url": "https://github.com/yume-chan/ya-webadb/issues"
+  },
+  "type": "module",
+  "main": "esm/index.js",
+  "types": "esm/index.d.ts",
+  "sideEffects": false,
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "prettier": "^3.5.3",
+    "tinybench": "^3.1.1",
+    "typescript": "^5.8.2",
+    "@yume-chan/eslint-config": "^1.0.0",
+    "@yume-chan/tsconfig": "^1.0.0",
+    "@yume-chan/test-runner": "^1.0.0"
+  },
+  "scripts": {
+    "benchmark": "node benchmark.js",
+    "build": "tsc -b tsconfig.build.json",
+    "lint": "run-eslint && prettier src/**/*.ts --write --tab-width 4",
+    "test": "run-test"
+  }
+}

@@ -1,0 +1,13 @@
+export declare type PromiseResolverState = 'running' | 'resolved' | 'rejected';
+export declare class PromiseResolver<T> {
+    private _promise;
+    get promise(): Promise<T>;
+    private _resolve;
+    private _reject;
+    private _state;
+    get state(): PromiseResolverState;
+    constructor();
+    resolve: (value: T | PromiseLike<T>) => void;
+    reject: (reason?: any) => void;
+}
+//# sourceMappingURL=promise-resolver.d.ts.map

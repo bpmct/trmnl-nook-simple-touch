@@ -1,0 +1,131 @@
+import { PromiseResolver } from "@yume-chan/async";
+import { ReadableStream, WritableStream, } from "./stream.js";
+class RingBuffer {
+    _capacity;
+    get capacity() {
+        return this._capacity;
+    }
+    _size;
+    get size() {
+        return this._size;
+    }
+    _buffer;
+    _head;
+    _tail;
+    constructor(capacity) {
+        this._capacity = capacity;
+        this._size = 0;
+        this._head = 0;
+        this._tail = 0;
+        this._buffer = new Array(capacity);
+    }
+    push(value) {
+        this._buffer[this._head] = value;
+        this._size += 1;
+        this._head = (this._head + 1) % this._capacity;
+        if (this._head === this._tail) {
+            this._tail = (this._tail + 1) % this._capacity;
+        }
+    }
+    shift() {
+        if (this._head === this._tail) {
+            return undefined;
+        }
+        this._size -= 1;
+        const value = this._buffer[this._tail];
+        this._tail = (this._tail + 1) % this._capacity;
+        return value;
+    }
+    peekFirst() {
+        return this._buffer[this._tail];
+    }
+}
+export const PRESSURE_WARNINGS = new Map();
+export class PressureSensor {
+    _readable;
+    get readable() {
+        return this._readable;
+    }
+    _writable;
+    get writable() {
+        return this._writable;
+    }
+    _name;
+    _ended = false;
+    _cancelReason = undefined;
+    _readAhead;
+    _writeAhead;
+    _writeLock;
+    constructor(name, size) {
+        this._name = name;
+        this._readAhead = new RingBuffer(size);
+        this._writeAhead = new RingBuffer(size);
+        this._readable = new ReadableStream({
+            pull: async (controller) => {
+                if (this._writeAhead.size !== 0) {
+                    controller.enqueue(this._writeAhead.shift());
+                    return;
+                }
+                if (this._ended) {
+                    controller.close();
+                    return;
+                }
+                const resolver = new PromiseResolver();
+                this._readAhead.push(resolver);
+                const chunk = await resolver.promise;
+                if (chunk === undefined) {
+                    controller.close();
+                }
+                else {
+                    controller.enqueue(chunk);
+                }
+            },
+            cancel: (reason) => {
+                this._cancelReason = reason;
+            },
+        });
+        this._writable = new WritableStream({
+            write: (chunk) => {
+                if (this._cancelReason !== undefined) {
+                    throw this._cancelReason;
+                }
+                if (this._readAhead.size !== 0) {
+                    this._readAhead.shift().resolve(chunk);
+                    return;
+                }
+                if (this._writeAhead.size === this._writeAhead.capacity) {
+                    if (this._writeLock) {
+                        throw new Error(`PressureSensor ${this._name}: the producer keeps writing without monitoring the pressure.`);
+                    }
+                    const warnings = PRESSURE_WARNINGS.get(this._name);
+                    if (warnings) {
+                        warnings.push(Date.now());
+                    }
+                    else {
+                        PRESSURE_WARNINGS.set(this._name, [Date.now()]);
+                    }
+                    this._writeLock = new PromiseResolver();
+                    return this._writeLock.promise.then(() => {
+                        this._writeLock = undefined;
+                        this._writeAhead.push(chunk);
+                    });
+                }
+                this._writeAhead.push(chunk);
+                return undefined;
+            },
+            close: () => {
+                this._ended = true;
+                while (this._readAhead.size !== 0) {
+                    this._readAhead.shift().resolve(undefined);
+                }
+            },
+            abort: (reason) => {
+                this._ended = true;
+                while (this._readAhead.size !== 0) {
+                    this._readAhead.shift().reject(reason);
+                }
+            },
+        });
+    }
+}
+//# sourceMappingURL=trace.js.map
