@@ -893,7 +893,7 @@ public class DisplayActivity extends Activity {
         
         TextView title = new TextView(this);
         title.setText("TRMNL");
-        title.setTextSize(22);
+        title.setTextSize(26);
         title.setTextColor(0xFF000000);
         title.setPadding(12, 0, 0, 0);
         headerRow.addView(title);
@@ -913,7 +913,7 @@ public class DisplayActivity extends Activity {
         
         TextView greetingView = new TextView(this);
         greetingView.setText(greeting.toString());
-        greetingView.setTextSize(14);
+        greetingView.setTextSize(18);
         greetingView.setTextColor(0xFF000000);
         LinearLayout.LayoutParams greetParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -923,7 +923,7 @@ public class DisplayActivity extends Activity {
         // Description
         TextView desc = new TextView(this);
         desc.setText("Use it for weather, calendars, news, or hundreds of other plugins from trmnl.com");
-        desc.setTextSize(12);
+        desc.setTextSize(14);
         desc.setTextColor(0xFF666666);
         LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -946,21 +946,21 @@ public class DisplayActivity extends Activity {
             // Web setup: show URL as primary CTA
             TextView stepsTitle = new TextView(this);
             stepsTitle.setText("SETUP");
-            stepsTitle.setTextSize(11);
+            stepsTitle.setTextSize(13);
             stepsTitle.setTextColor(0xFF888888);
             LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            stepsTitleParams.topMargin = 16;
+            stepsTitleParams.topMargin = 20;
             giftLayout.addView(stepsTitle, stepsTitleParams);
             
             // Primary CTA: web URL
             TextView urlLabel = new TextView(this);
             urlLabel.setText("Visit this URL on your phone or computer:");
-            urlLabel.setTextSize(13);
+            urlLabel.setTextSize(15);
             urlLabel.setTextColor(0xFF000000);
             LinearLayout.LayoutParams urlLabelParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            urlLabelParams.topMargin = 14;
+            urlLabelParams.topMargin = 16;
             giftLayout.addView(urlLabel, urlLabelParams);
             
             TextView urlView = new TextView(this);
@@ -969,7 +969,7 @@ public class DisplayActivity extends Activity {
             } else {
                 urlView.setText("nooks.bpmct.net");
             }
-            urlView.setTextSize(16);
+            urlView.setTextSize(20);
             urlView.setTextColor(0xFF000000);
             urlView.setBackgroundColor(0xFFEEEEEE);
             urlView.setPadding(16, 12, 16, 12);
@@ -981,24 +981,24 @@ public class DisplayActivity extends Activity {
             // Manual setup steps (original flow)
             TextView stepsTitle = new TextView(this);
             stepsTitle.setText("SETUP");
-            stepsTitle.setTextSize(11);
+            stepsTitle.setTextSize(13);
             stepsTitle.setTextColor(0xFF888888);
             LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            stepsTitleParams.topMargin = 16;
+            stepsTitleParams.topMargin = 20;
             giftLayout.addView(stepsTitle, stepsTitleParams);
             
             // Step 1
-            giftLayout.addView(createStepRow("1", "Sign up at trmnl.com/signup"), createStepParams(12));
+            giftLayout.addView(createStepRow("1", "Sign up at trmnl.com/signup"), createStepParams(14));
             
             // Step 2
             String step2Text = (code != null && code.length() > 0) 
                     ? "Add device with code: " + code 
                     : "Add device (get code from gifter)";
-            giftLayout.addView(createStepRow("2", step2Text), createStepParams(8));
+            giftLayout.addView(createStepRow("2", step2Text), createStepParams(10));
             
             // Step 3
-            giftLayout.addView(createStepRow("3", "Tap screen → Settings → Edit"), createStepParams(8));
+            giftLayout.addView(createStepRow("3", "Tap screen → Settings → Edit"), createStepParams(10));
         }
         
         // Replace contentView's parent contents
@@ -1018,16 +1018,16 @@ public class DisplayActivity extends Activity {
         
         TextView numView = new TextView(this);
         numView.setText(number);
-        numView.setTextSize(16);
+        numView.setTextSize(18);
         numView.setTextColor(0xFF000000);
         numView.setGravity(Gravity.CENTER);
         numView.setBackgroundColor(0xFFEEEEEE);
-        numView.setPadding(12, 4, 12, 4);
+        numView.setPadding(14, 6, 14, 6);
         row.addView(numView);
         
         TextView textView = new TextView(this);
         textView.setText(text);
-        textView.setTextSize(12);
+        textView.setTextSize(14);
         textView.setTextColor(0xFF000000);
         textView.setPadding(12, 0, 0, 0);
         textView.setGravity(Gravity.CENTER_VERTICAL);
