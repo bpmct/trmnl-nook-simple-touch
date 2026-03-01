@@ -25,10 +25,10 @@ bump so users expect meaningful change.
 
 Suggested guidance to give users:
 - Ensure `main` is clean and up to date.
-- (Optional) Stamp the manifest locally for traceability:
-  - `./tools/set-version.sh v0.1.0` (uses `python3`)
-  - Commit the version bump.
-- Create and push the tag:
+- **Do NOT run `set-version.sh` locally or commit version bumps.** CI stamps
+  the manifest automatically from the tag. Running it locally on a feature
+  branch creates a misleading versionCode that diverges from the release.
+- Create and push the tag **on `main`**:
   - `git tag v0.1.0`
   - `git push origin main --tags`
 - Wait for the **tag** CI run (not the branch run). Both trigger, but only the
