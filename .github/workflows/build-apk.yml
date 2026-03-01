@@ -57,6 +57,19 @@ jobs:
           chmod +x tools/set-version.sh
           tools/set-version.sh "${GITHUB_REF_NAME}"
 
+      - name: Commit version bump to main
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet AndroidManifest.xml; then
+            git add AndroidManifest.xml
+            git commit -m "Bump version to ${GITHUB_REF_NAME#v}"
+            git push origin HEAD:main
+          fi
+
       - name: Configure release signing
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
