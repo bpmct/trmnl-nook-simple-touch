@@ -938,27 +938,63 @@ public class DisplayActivity extends Activity {
         divParams.topMargin = 20;
         giftLayout.addView(divider, divParams);
         
-        // Setup steps title
-        TextView stepsTitle = new TextView(this);
-        stepsTitle.setText("SETUP");
-        stepsTitle.setTextSize(11);
-        stepsTitle.setTextColor(0xFF888888);
-        LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        stepsTitleParams.topMargin = 16;
-        giftLayout.addView(stepsTitle, stepsTitleParams);
+        // Setup steps
+        boolean webSetup = ApiPrefs.isGiftWebSetup(this);
         
-        // Step 1
-        giftLayout.addView(createStepRow("1", "Sign up at trmnl.com/signup"), createStepParams(12));
-        
-        // Step 2
-        String step2Text = (code != null && code.length() > 0) 
-                ? "Add device with code: " + code 
-                : "Add device (get code from gifter)";
-        giftLayout.addView(createStepRow("2", step2Text), createStepParams(8));
-        
-        // Step 3
-        giftLayout.addView(createStepRow("3", "Tap screen → Settings → Edit"), createStepParams(8));
+        if (webSetup && code != null && code.length() > 0) {
+            // Web setup: show URL as primary CTA
+            TextView stepsTitle = new TextView(this);
+            stepsTitle.setText("SETUP");
+            stepsTitle.setTextSize(11);
+            stepsTitle.setTextColor(0xFF888888);
+            LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            stepsTitleParams.topMargin = 16;
+            giftLayout.addView(stepsTitle, stepsTitleParams);
+            
+            // Primary CTA: web URL
+            TextView urlLabel = new TextView(this);
+            urlLabel.setText("Visit this URL on your phone or computer:");
+            urlLabel.setTextSize(13);
+            urlLabel.setTextColor(0xFF000000);
+            LinearLayout.LayoutParams urlLabelParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            urlLabelParams.topMargin = 14;
+            giftLayout.addView(urlLabel, urlLabelParams);
+            
+            TextView urlView = new TextView(this);
+            urlView.setText("nooks.bpmct.net?device=" + code);
+            urlView.setTextSize(16);
+            urlView.setTextColor(0xFF000000);
+            urlView.setBackgroundColor(0xFFEEEEEE);
+            urlView.setPadding(16, 12, 16, 12);
+            LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            urlParams.topMargin = 8;
+            giftLayout.addView(urlView, urlParams);
+        } else {
+            // Manual setup steps (original flow)
+            TextView stepsTitle = new TextView(this);
+            stepsTitle.setText("SETUP");
+            stepsTitle.setTextSize(11);
+            stepsTitle.setTextColor(0xFF888888);
+            LinearLayout.LayoutParams stepsTitleParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            stepsTitleParams.topMargin = 16;
+            giftLayout.addView(stepsTitle, stepsTitleParams);
+            
+            // Step 1
+            giftLayout.addView(createStepRow("1", "Sign up at trmnl.com/signup"), createStepParams(12));
+            
+            // Step 2
+            String step2Text = (code != null && code.length() > 0) 
+                    ? "Add device with code: " + code 
+                    : "Add device (get code from gifter)";
+            giftLayout.addView(createStepRow("2", step2Text), createStepParams(8));
+            
+            // Step 3
+            giftLayout.addView(createStepRow("3", "Tap screen → Settings → Edit"), createStepParams(8));
+        }
         
         // Replace contentView's parent contents
         if (contentScroll != null) {
