@@ -941,7 +941,8 @@ public class DisplayActivity extends Activity {
         // Setup steps
         boolean webSetup = ApiPrefs.isGiftWebSetup(this);
         
-        if (webSetup && code != null && code.length() > 0) {
+        boolean hasCode = code != null && code.length() > 0;
+        if (webSetup) {
             // Web setup: show URL as primary CTA
             TextView stepsTitle = new TextView(this);
             stepsTitle.setText("SETUP");
@@ -963,7 +964,11 @@ public class DisplayActivity extends Activity {
             giftLayout.addView(urlLabel, urlLabelParams);
             
             TextView urlView = new TextView(this);
-            urlView.setText("nooks.bpmct.net?device=" + code);
+            if (hasCode) {
+                urlView.setText("nooks.bpmct.net?device=" + code);
+            } else {
+                urlView.setText("nooks.bpmct.net");
+            }
             urlView.setTextSize(16);
             urlView.setTextColor(0xFF000000);
             urlView.setBackgroundColor(0xFFEEEEEE);
