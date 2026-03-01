@@ -964,9 +964,9 @@ public class DisplayActivity extends Activity {
             
             TextView urlView = new TextView(this);
             if (hasCode) {
-                urlView.setText("nooks.bpmct.net?device=" + code);
+                urlView.setText("https://nooks.bpmct.net/?device=" + code);
             } else {
-                urlView.setText("nooks.bpmct.net");
+                urlView.setText("https://nooks.bpmct.net");
             }
             urlView.setTextSize(20);
             urlView.setTextColor(0xFF000000);
