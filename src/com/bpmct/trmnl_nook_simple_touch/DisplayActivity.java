@@ -878,7 +878,7 @@ public class DisplayActivity extends Activity {
         
         LinearLayout giftLayout = new LinearLayout(this);
         giftLayout.setOrientation(LinearLayout.VERTICAL);
-        giftLayout.setPadding(50, 30, 50, 40);
+        giftLayout.setPadding(50, 60, 50, 40);
         giftLayout.setLayoutParams(scrollParams);
         
         // Logo + Title row
