@@ -207,7 +207,21 @@ connect_device() {
   [[ -n "${DEVICE_IP}" ]] || die "no device IP provided"
 
   adb_cmd start-server >/dev/null
+
+  # First attempt
   adb_cmd connect "$(device_connect_arg)"
+
+  # If device shows offline, do a full reconnect cycle (common after sleep/wake)
+  if "${ADB_BIN}" devices 2>/dev/null | grep -q "$(device_target).*offline"; then
+    echo "Device offline — performing full ADB reconnect cycle..."
+    adb_cmd kill-server
+    adb_cmd start-server >/dev/null
+    adb_cmd disconnect "$(device_target)" 2>/dev/null || true
+    sleep 1
+    adb_cmd connect "$(device_connect_arg)"
+    sleep 2
+  fi
+
   adb_cmd devices
 }
 
@@ -225,6 +239,22 @@ ensure_connected() {
   "${ADB_BIN}" start-server >/dev/null 2>&1
   if ! timeout 20s "${ADB_BIN}" connect "$(device_connect_arg)" >/dev/null 2>&1; then
     die "Failed to connect to device at ${DEVICE_IP}:${DEVICE_PORT} within 20 seconds. Check device is online and ADB-over-TCP is enabled."
+  fi
+
+  # Auto-recover from offline state (common after NOOK sleep/wake)
+  if "${ADB_BIN}" devices 2>/dev/null | grep -q "$(device_target).*offline"; then
+    echo "Device offline — performing full ADB reconnect cycle..." >&2
+    "${ADB_BIN}" kill-server >/dev/null 2>&1
+    "${ADB_BIN}" start-server >/dev/null 2>&1
+    "${ADB_BIN}" disconnect "$(device_target)" >/dev/null 2>&1 || true
+    sleep 1
+    if ! timeout 20s "${ADB_BIN}" connect "$(device_connect_arg)" >/dev/null 2>&1; then
+      die "Device still offline after reconnect cycle. Check device is awake and on the network."
+    fi
+    sleep 2
+    if "${ADB_BIN}" devices 2>/dev/null | grep -q "$(device_target).*offline"; then
+      die "Device still showing offline after full reconnect. Try power-cycling the NOOK."
+    fi
   fi
 }
 

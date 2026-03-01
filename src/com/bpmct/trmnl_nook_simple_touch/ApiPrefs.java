@@ -15,6 +15,7 @@ public class ApiPrefs {
     private static final String KEY_FRIENDLY_DEVICE_CODE = "friendly_device_code";
     private static final String KEY_GIFT_FROM_NAME = "gift_from_name";
     private static final String KEY_GIFT_TO_NAME = "gift_to_name";
+    private static final String KEY_GIFT_WEB_SETUP = "gift_web_setup";
     private static final String KEY_ALLOW_HTTP = "allow_http";
     private static final String KEY_ALLOW_SELF_SIGNED_CERTS = "allow_self_signed_certs";
     private static final String KEY_AUTO_DISABLE_WIFI = "auto_disable_wifi";
@@ -166,6 +167,17 @@ public class ApiPrefs {
     public static void saveGiftToName(Context context, String name) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putString(KEY_GIFT_TO_NAME, name != null ? name.trim() : "").commit();
+    }
+
+    /** Whether gift mode should show web-based setup URL instead of manual steps. */
+    public static boolean isGiftWebSetup(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_GIFT_WEB_SETUP, false);
+    }
+
+    public static void setGiftWebSetup(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_GIFT_WEB_SETUP, enabled).commit();
     }
 
     /** Whether to allow HTTP (non-HTTPS) connections. Default false. */

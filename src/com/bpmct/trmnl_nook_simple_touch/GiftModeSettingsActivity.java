@@ -8,6 +8,8 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -18,6 +20,7 @@ public class GiftModeSettingsActivity extends Activity {
     private EditText deviceCodeField;
     private EditText fromNameField;
     private EditText toNameField;
+    private CheckBox webSetupCheckbox;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,7 +74,7 @@ public class GiftModeSettingsActivity extends Activity {
         deviceCodeField = createTextField(ApiPrefs.getFriendlyDeviceCode(this));
         inner.addView(deviceCodeField, createFieldParams());
 
-        TextView hint = new TextView(this);
+        final TextView hint = new TextView(this);
         hint.setText("Find your code at: trmnl.com/claim-a-device");
         hint.setTextSize(10);
         hint.setTextColor(0xFF888888);
@@ -80,6 +83,28 @@ public class GiftModeSettingsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         hintParams.topMargin = 4;
         inner.addView(hint, hintParams);
+
+        // Web setup checkbox
+        webSetupCheckbox = new CheckBox(this);
+        webSetupCheckbox.setText("Web code setup");
+        webSetupCheckbox.setTextSize(13);
+        webSetupCheckbox.setTextColor(0xFF000000);
+        webSetupCheckbox.setChecked(ApiPrefs.isGiftWebSetup(this));
+        LinearLayout.LayoutParams cbParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        cbParams.topMargin = 14;
+        inner.addView(webSetupCheckbox, cbParams);
+
+        TextView webSetupHint = new TextView(this);
+        webSetupHint.setText("When enabled, the display instructs the recipient to visit a web URL to set up the device instead of manual steps.");
+        webSetupHint.setTextSize(10);
+        webSetupHint.setTextColor(0xFF888888);
+        LinearLayout.LayoutParams webHintParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        webHintParams.topMargin = 4;
+        inner.addView(webSetupHint, webHintParams);
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -111,6 +136,8 @@ public class GiftModeSettingsActivity extends Activity {
                         fromNameField.getText().toString().trim());
                 ApiPrefs.saveGiftToName(GiftModeSettingsActivity.this,
                         toNameField.getText().toString().trim());
+                ApiPrefs.setGiftWebSetup(GiftModeSettingsActivity.this,
+                        webSetupCheckbox.isChecked());
                 // Go back to main display
                 android.content.Intent intent = new android.content.Intent(GiftModeSettingsActivity.this, DisplayActivity.class);
                 intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);

@@ -10,16 +10,9 @@ Current notes:
 
 ## Key Patterns
 
-(Temporary note) ADB-over-TCP on NOOK is flaky after sleep/wake. If `adb devices` shows `offline`, restart host adb and reconnect:
-
-```bash
-adb kill-server
-adb start-server
-adb disconnect <ip>:5555
-sleep 1
-adb connect <ip>:5555
-adb devices
-```
+ADB-over-TCP on NOOK is flaky after sleep/wake. The `nook-adb.sh` script
+auto-recovers from `offline` state (kill-server → reconnect cycle), so
+**always use `tools/nook-adb.sh`** — never call `adb` directly.
 
 Saved file logs (when "Save to file" enabled) live at:
 - `/media/My Files/trmnl.log`
