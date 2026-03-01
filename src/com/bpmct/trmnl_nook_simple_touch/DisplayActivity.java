@@ -103,6 +103,13 @@ public class DisplayActivity extends Activity {
         // Initialize file logging from saved preference
         FileLogger.setEnabled(ApiPrefs.isFileLoggingEnabled(this));
 
+        // Write the generic screensaver on first-ever launch so NOOK shows something
+        // branded if it sleeps before any API image has been displayed.
+        if (!ApiPrefs.isScreensaverWrittenOnce(this)) {
+            writeGenericScreensaver();
+            ApiPrefs.setScreensaverWrittenOnce(this, true);
+        }
+
         // NOOK Simple Touch is API 7 (no nav bar); keep this deterministic.
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
