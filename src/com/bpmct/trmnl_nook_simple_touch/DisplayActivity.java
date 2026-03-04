@@ -453,14 +453,15 @@ public class DisplayActivity extends Activity {
                 logD("Ensure you are connected to WiFi. Press the home button and go into settings to configure.");
                 cancelConnectivityWait();
                 if (showErrorInMenu) {
-                    a.showMenuStatus("Couldn't connect. Tap Next to retry.", true);
+                    a.showMenuStatus("Couldn't connect. Will retry next cycle.", true);
                 } else {
-                    if (a.contentView != null) a.contentView.setText("Couldn't connect. Tap Next to retry.");
+                    if (a.contentView != null) a.contentView.setText("Couldn't connect. Will retry next cycle.");
                     if (a.contentScroll != null) a.contentScroll.setVisibility(View.VISIBLE);
                     if (a.imageView != null) a.imageView.setVisibility(View.GONE);
                     if (a.logView != null) a.logView.setVisibility(View.VISIBLE);
                     a.forceFullRefresh();
                 }
+                a.scheduleNextCycle();
             }
         };
         refreshHandler.postDelayed(pendingConnectivityTimeoutRunnable, CONNECTIVITY_MAX_WAIT_MS);
