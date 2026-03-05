@@ -69,6 +69,18 @@ jobs:
             git commit -m "Bump version to ${GITHUB_REF_NAME#v}"
             git push origin HEAD:main
           fi
+      - name: Move tag to version-bumped commit
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          # After committing the version bump to main, the tag still points
+          # to the pre-bump commit. Move it so raw.githubusercontent.com
+          # serves the correct AndroidManifest.xml for this tag.
+          BUMP_SHA="$(git rev-parse HEAD)"
+          git tag -f "${GITHUB_REF_NAME}" "${BUMP_SHA}"
+          git push origin "${GITHUB_REF_NAME}" --force
+
 
       - name: Configure release signing
         if: startsWith(github.ref, 'refs/tags/')
