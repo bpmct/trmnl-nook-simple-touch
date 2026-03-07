@@ -1010,6 +1010,16 @@ public class DisplayActivity extends Activity {
         
         // Write gift mode screen to screensaver so NOOK shows it when asleep
         writeGiftModeScreensaver(code, fromName, toName);
+
+        // Allow device to sleep; user tap wakes it
+        if (ApiPrefs.isAllowSleep(this)) {
+            setKeepScreenAwake(false);
+            if (ApiPrefs.isAutoDisableWifi(this)) {
+                WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                if (wifi != null) wifi.setWifiEnabled(false);
+            }
+            logD("gift mode: sleep-ready (tap to wake)");
+        }
     }
     
     private LinearLayout createStepRow(String number, String text) {
